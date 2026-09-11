@@ -427,6 +427,51 @@
     </div>
   </div>
 
+  <!-- 大日历详情页 -->
+  <div class="detail-overlay" id="big-calendar" hidden>
+    <header class="detail-header">
+      <button type="button" class="back-btn" id="big-calendar-back" aria-label="返回">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="detail-title">
+        <h1 class="detail-name">日历</h1>
+      </div>
+      <button type="button" class="add-event-btn" id="add-event-btn" aria-label="添加">＋</button>
+    </header>
+    <div class="add-menu" id="add-menu" hidden>
+      <button type="button" id="add-important">重要事件</button>
+      <button type="button" id="add-reminder">提醒事项</button>
+    </div>
+    <div class="big-cal-scroll">
+      <div class="big-calendar" id="big-calendar-grid"></div>
+    </div>
+    <div class="big-cal-detail" id="big-cal-detail"></div>
+  </div>
+
+  <!-- 重要事件编辑器 -->
+  <div class="editor-overlay" id="event-editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="重要事件">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="event-editor-cancel">取消</button>
+        <span class="editor-title-label editor-title-dark">重要事件</span>
+        <button type="button" class="editor-done" id="event-editor-save">保存</button>
+      </header>
+      <div class="editor-body">
+        <input type="text" id="event-text" class="memo-title-input" placeholder="事件内容" maxlength="50" autocomplete="off">
+        <label class="field-label">时间</label>
+        <input type="time" id="event-time" class="date-input">
+        <label class="field-label">颜色</label>
+        <div class="color-picker" id="event-color-picker">
+          <button type="button" class="color-dot active" data-color="mint" style="background:#a7f3d0"></button>
+          <button type="button" class="color-dot" data-color="pink" style="background:#fbcfe8"></button>
+          <button type="button" class="color-dot" data-color="lightred" style="background:#fecaca"></button>
+          <button type="button" class="color-dot" data-color="darkred" style="background:#ef4444"></button>
+          <button type="button" class="color-dot" data-color="skyblue" style="background:#7dd3fc"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

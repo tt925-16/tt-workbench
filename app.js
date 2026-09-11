@@ -23,6 +23,21 @@
   const moodBtn = document.getElementById('mood-btn');
   const moodPicker = document.getElementById('mood-picker');
   const moodOptions = Array.from(document.querySelectorAll('#mood-picker button'));
+
+  const bigCalendar = document.getElementById('big-calendar');
+  const bigCalendarBack = document.getElementById('big-calendar-back');
+  const bigCalendarGrid = document.getElementById('big-calendar-grid');
+  const bigCalendarDetail = document.getElementById('big-cal-detail');
+  const addEventBtn = document.getElementById('add-event-btn');
+  const addMenu = document.getElementById('add-menu');
+  const addImportant = document.getElementById('add-important');
+  const addReminder = document.getElementById('add-reminder');
+  const eventEditorOverlay = document.getElementById('event-editor-overlay');
+  const eventEditorCancel = document.getElementById('event-editor-cancel');
+  const eventEditorSave = document.getElementById('event-editor-save');
+  const eventText = document.getElementById('event-text');
+  const eventTime = document.getElementById('event-time');
+  const eventColorDots = Array.from(document.querySelectorAll('#event-color-picker .color-dot'));
   const addBtn = document.getElementById('btn-add');
   const segButtons = Array.from(document.querySelectorAll('.seg-btn'));
   const todayView = document.getElementById('today-view');
@@ -169,6 +184,8 @@
   let clickAudioCtx = null;
   let musicExited = false;
   let musicCounter = 0;
+  let events = loadEvents();
+  let eventColor = 'mint';
   let currentPage = 'today';
   let currentListType = 'todo';
   let projects = loadProjects();
@@ -513,6 +530,7 @@
         selectedDate = new Date(year, month, d);
         renderCalendar();
         renderDiaryPlans();
+        updateWeatherMoodUI();
       });
 
       grid.appendChild(cell);
@@ -543,6 +561,7 @@
     selectedDate = new Date(base.getFullYear(), base.getMonth(), Math.min(d, lastDay));
     renderCalendar();
     renderDiaryPlans();
+    updateWeatherMoodUI();
   }
 
   function rerenderTodayModule() {
@@ -2265,6 +2284,229 @@
     } catch (e) {}
   }
 
+  // ---- 每日天气/心情 ----
+  function getWeatherMap() {
+    try { return JSON.parse(localStorage.getItem('tt-workbench.weather') || '{}'); } catch (e) { return {}; }
+  }
+  function getWeather(ds) { return getWeatherMap()[ds] || '☀️'; }
+  function setWeather(ds, emoji) {
+    const m = getWeatherMap();
+    m[ds] = emoji;
+    localStorage.setItem('tt-workbench.weather', JSON.stringify(m));
+  }
+  function getMoodMap() {
+    try { return JSON.parse(localStorage.getItem('tt-workbench.mood') || '{}'); } catch (e) { return {}; }
+  }
+  function getMood(ds) { return getMoodMap()[ds] || '😊'; }
+  function setMood(ds, emoji) {
+    const m = getMoodMap();
+    m[ds] = emoji;
+    localStorage.setItem('tt-workbench.mood', JSON.stringify(m));
+  }
+  function updateWeatherMoodUI() {
+    const ds = dateStr(selectedDate);
+    weatherBtn.textContent = getWeather(ds);
+    moodBtn.textContent = getMood(ds);
+  }
+
+  // ---- 重要事件 ----
+  const EVENT_STORAGE_KEY = 'tt-workbench.events';
+  const EVENT_COLORS = {
+    mint: { bg: '#a7f3d0', text: '#065f46' },
+    pink: { bg: '#fbcfe8', text: '#831843' },
+    lightred: { bg: '#fecaca', text: '#7f1d1d' },
+    darkred: { bg: '#ef4444', text: '#ffffff' },
+    skyblue: { bg: '#7dd3fc', text: '#0c4a6e' },
+  };
+
+  function loadEvents() {
+    try {
+      const data = JSON.parse(localStorage.getItem(EVENT_STORAGE_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch (e) { return []; }
+  }
+  function saveEvents() {
+    try { localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events)); } catch (e) {}
+  }
+
+  // ---- 大日历 ----
+  function openBigCalendar() {
+    bigCalendar.hidden = false;
+    renderBigCalendar();
+    renderBigCalendarDetail();
+  }
+  function closeBigCalendar() {
+    bigCalendar.hidden = true;
+  }
+
+  function renderBigCalendar() {
+    bigCalendarGrid.innerHTML = '';
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+
+    const header = document.createElement('div');
+    header.className = 'calendar-header';
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.className = 'cal-nav';
+    prevBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>';
+    prevBtn.addEventListener('click', () => navBigMonth(-1));
+    const title = document.createElement('div');
+    title.className = 'calendar-title';
+    title.textContent = year + '年' + (month + 1) + '月';
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.className = 'cal-nav';
+    nextBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+    nextBtn.addEventListener('click', () => navBigMonth(1));
+    header.appendChild(prevBtn);
+    header.appendChild(title);
+    header.appendChild(nextBtn);
+    bigCalendarGrid.appendChild(header);
+
+    const weekdays = document.createElement('div');
+    weekdays.className = 'calendar-weekdays';
+    ['日', '一', '二', '三', '四', '五', '六'].forEach((w) => {
+      const s = document.createElement('span');
+      s.textContent = w;
+      weekdays.appendChild(s);
+    });
+    bigCalendarGrid.appendChild(weekdays);
+
+    const grid = document.createElement('div');
+    grid.className = 'calendar-grid';
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      const blank = document.createElement('div');
+      blank.className = 'big-day';
+      blank.style.cursor = 'default';
+      blank.style.border = 'none';
+      grid.appendChild(blank);
+    }
+
+    const todayS = todayStr();
+    const selS = dateStr(selectedDate);
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'big-day' + (ds === selS ? ' selected' : '');
+
+      const num = document.createElement('span');
+      num.className = 'big-day-num';
+      num.textContent = d;
+      const dayEvents = events.filter((e) => e.date === ds);
+      if (dayEvents.length > 0) {
+        const c = EVENT_COLORS[dayEvents[0].color] || EVENT_COLORS.mint;
+        num.style.background = c.bg;
+        num.style.color = c.text;
+      } else if (ds === todayS) {
+        num.style.outline = '1px solid var(--accent)';
+      }
+
+      const wm = document.createElement('span');
+      wm.className = 'big-day-wm';
+      wm.textContent = getWeather(ds) + getMood(ds);
+
+      const todos = plans.filter((p) => p.date === ds);
+      cell.appendChild(num);
+      cell.appendChild(wm);
+      if (todos.length > 0) {
+        const todo = document.createElement('span');
+        todo.className = 'big-day-todo';
+        todo.textContent = todos.length + ' 项';
+        cell.appendChild(todo);
+      }
+
+      cell.addEventListener('click', () => {
+        selectedDate = new Date(year, month, d);
+        renderBigCalendar();
+        renderBigCalendarDetail();
+      });
+
+      grid.appendChild(cell);
+    }
+    bigCalendarGrid.appendChild(grid);
+  }
+
+  function navBigMonth(delta) {
+    const y = selectedDate.getFullYear();
+    const m = selectedDate.getMonth();
+    const d = selectedDate.getDate();
+    const base = new Date(y, m + delta, 1);
+    const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+    selectedDate = new Date(base.getFullYear(), base.getMonth(), Math.min(d, lastDay));
+    renderBigCalendar();
+    renderBigCalendarDetail();
+  }
+
+  function renderBigCalendarDetail() {
+    bigCalendarDetail.innerHTML = '';
+    const ds = dateStr(selectedDate);
+    const title = document.createElement('div');
+    title.className = 'detail-day-title';
+    title.textContent = (selectedDate.getMonth() + 1) + '月' + selectedDate.getDate() + '日';
+    bigCalendarDetail.appendChild(title);
+
+    events.filter((e) => e.date === ds).forEach((e) => {
+      const item = document.createElement('div');
+      item.className = 'big-event-item';
+      const c = EVENT_COLORS[e.color] || EVENT_COLORS.mint;
+      item.style.background = c.bg;
+      item.style.color = c.text;
+      if (e.time) {
+        const t = document.createElement('span');
+        t.className = 'big-event-time';
+        t.textContent = e.time;
+        item.appendChild(t);
+      }
+      const txt = document.createElement('span');
+      txt.textContent = e.text;
+      item.appendChild(txt);
+      bigCalendarDetail.appendChild(item);
+    });
+
+    plans.filter((p) => p.date === ds).forEach((p) => {
+      const item = document.createElement('span');
+      item.className = 'big-todo-item';
+      item.textContent = p.title;
+      bigCalendarDetail.appendChild(item);
+    });
+
+    if (events.filter((e) => e.date === ds).length === 0 && plans.filter((p) => p.date === ds).length === 0) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'font-size:13px;color:var(--text-muted);';
+      empty.textContent = '这一天没有事件或待办';
+      bigCalendarDetail.appendChild(empty);
+    }
+  }
+
+  // ---- 重要事件编辑器 ----
+  function openEventEditor() {
+    eventColor = 'mint';
+    eventText.value = '';
+    eventTime.value = '';
+    eventColorDots.forEach((dot) => dot.classList.toggle('active', dot.dataset.color === 'mint'));
+    eventEditorOverlay.hidden = false;
+    requestAnimationFrame(() => eventText.focus());
+  }
+  function closeEventEditor() {
+    eventEditorOverlay.hidden = true;
+  }
+  function collectAndSaveEvent() {
+    const text = eventText.value.trim();
+    if (!text) { eventText.focus(); return; }
+    events.push({ id: uid(), date: dateStr(selectedDate), text: text, time: eventTime.value, color: eventColor });
+    saveEvents();
+    closeEventEditor();
+    renderBigCalendar();
+    renderBigCalendarDetail();
+  }
+
   // ---- 页面切换 ----
   function switchPage(page) {
     currentPage = page;
@@ -2299,8 +2541,8 @@
   weatherOptions.forEach((btn) => {
     btn.addEventListener('click', () => {
       const w = btn.dataset.weather;
+      setWeather(dateStr(selectedDate), w);
       weatherBtn.textContent = w;
-      localStorage.setItem('tt-workbench.weather', w);
       weatherPicker.hidden = true;
     });
   });
@@ -2310,8 +2552,8 @@
   moodOptions.forEach((btn) => {
     btn.addEventListener('click', () => {
       const m = btn.dataset.mood;
+      setMood(dateStr(selectedDate), m);
       moodBtn.textContent = m;
-      localStorage.setItem('tt-workbench.mood', m);
       moodPicker.hidden = true;
     });
   });
@@ -2319,6 +2561,40 @@
     if (!e.target.closest('.diary-date-row') && !e.target.closest('.weather-picker') && !e.target.closest('.mood-picker')) {
       weatherPicker.hidden = true;
       moodPicker.hidden = true;
+    }
+  });
+
+  calendarWrap.addEventListener('click', (e) => {
+    if (!e.target.closest('.cal-day')) {
+      openBigCalendar();
+    }
+  });
+  bigCalendarBack.addEventListener('click', closeBigCalendar);
+  addEventBtn.addEventListener('click', () => {
+    addMenu.hidden = !addMenu.hidden;
+  });
+  addImportant.addEventListener('click', () => {
+    addMenu.hidden = true;
+    openEventEditor();
+  });
+  addReminder.addEventListener('click', () => {
+    addMenu.hidden = true;
+    alert('提醒功能下一版再做');
+  });
+  eventEditorCancel.addEventListener('click', closeEventEditor);
+  eventEditorSave.addEventListener('click', collectAndSaveEvent);
+  eventEditorOverlay.addEventListener('click', (e) => {
+    if (e.target === eventEditorOverlay) closeEventEditor();
+  });
+  eventColorDots.forEach((dot) => {
+    dot.addEventListener('click', () => {
+      eventColor = dot.dataset.color;
+      eventColorDots.forEach((d) => d.classList.toggle('active', d.dataset.color === eventColor));
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#add-event-btn')) {
+      addMenu.hidden = true;
     }
   });
 
@@ -2575,12 +2851,14 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (!memoEditorOverlay.hidden) commitMemoAndClose();
+      else if (!eventEditorOverlay.hidden) closeEventEditor();
       else if (!dreamEditorOverlay.hidden) closeDreamEditor();
       else if (!itemEditorOverlay.hidden) closeItemEditor();
       else if (!listEditorOverlay.hidden) closeListEditor();
       else if (!editorOverlay.hidden) closeEditor();
       else if (!diaryNoteOverlay.hidden) closeDiaryNote();
       else if (!progressDetail.hidden) closeProgressDetail();
+      else if (!bigCalendar.hidden) closeBigCalendar();
       else if (!projectDiary.hidden) closeProjectDiary();
       else if (!listDetail.hidden) closeListDetail();
     }
@@ -2590,8 +2868,7 @@
 
   // ---- 初始化 ----
   todaySignature.textContent = localStorage.getItem(SIGNATURE_KEY) || '';
-  weatherBtn.textContent = localStorage.getItem('tt-workbench.weather') || '☀️';
-  moodBtn.textContent = localStorage.getItem('tt-workbench.mood') || '😊';
+  updateWeatherMoodUI();
   rerenderTodayModule();
   renderLists();
   renderMemos();
