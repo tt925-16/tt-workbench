@@ -38,6 +38,15 @@
   const eventText = document.getElementById('event-text');
   const eventTime = document.getElementById('event-time');
   const eventTimeClear = document.getElementById('event-time-clear');
+  const reminderEditorOverlay = document.getElementById('reminder-editor-overlay');
+  const reminderEditorCancel = document.getElementById('reminder-editor-cancel');
+  const reminderEditorSave = document.getElementById('reminder-editor-save');
+  const reminderText = document.getElementById('reminder-text');
+  const reminderTime = document.getElementById('reminder-time');
+  const reminderEarlyOptions = Array.from(document.querySelectorAll('#reminder-early .early-option'));
+  const alarmOverlay = document.getElementById('alarm-overlay');
+  const alarmName = document.getElementById('alarm-name');
+  const alarmCancel = document.getElementById('alarm-cancel');
   const eventColorDots = Array.from(document.querySelectorAll('#event-color-picker .color-dot'));
   const addBtn = document.getElementById('btn-add');
   const segButtons = Array.from(document.querySelectorAll('.seg-btn'));
@@ -186,6 +195,11 @@
   let musicExited = false;
   let musicCounter = 0;
   let events = loadEvents();
+  let reminders = loadReminders();
+  let reminderEarly = '';
+  let currentAlarm = null;
+  let alarmSoundTimer = null;
+  let alarmVibrateTimer = null;
   let eventColor = 'mint';
   let currentPage = 'today';
   let currentListType = 'todo';
@@ -2427,6 +2441,15 @@
   function saveEvents() {
     try { localStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(events)); } catch (e) {}
   }
+  function loadReminders() {
+    try {
+      const data = JSON.parse(localStorage.getItem('tt-workbench.reminders') || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch (e) { return []; }
+  }
+  function saveReminders() {
+    try { localStorage.setItem('tt-workbench.reminders', JSON.stringify(reminders)); } catch (e) {}
+  }
 
   // ---- 大日历 ----
   function openBigCalendar() {
@@ -2535,6 +2558,13 @@
         cell.appendChild(ev);
       });
 
+      if (reminders.some((r) => !r.fired && r.time.slice(0, 10) === ds)) {
+        const bell = document.createElement('span');
+        bell.className = 'big-day-reminder';
+        bell.textContent = '🔔';
+        cell.appendChild(bell);
+      }
+
       plans.filter((p) => p.date === ds).forEach((p) => {
         const todo = document.createElement('span');
         todo.className = 'big-day-todo';
@@ -2627,6 +2657,101 @@
     renderBigCalendar();
   }
 
+  // ---- 提醒事项 ----
+  function openReminderEditor() {
+    reminderText.value = '';
+    reminderTime.value = '';
+    reminderEarly = '';
+    reminderEarlyOptions.forEach((b) => b.classList.toggle('active', b.dataset.early === ''));
+    reminderEditorOverlay.hidden = false;
+    requestAnimationFrame(() => reminderText.focus());
+  }
+  function closeReminderEditor() {
+    reminderEditorOverlay.hidden = true;
+  }
+  function saveReminder() {
+    const text = reminderText.value.trim();
+    const time = reminderTime.value;
+    if (!text) { reminderText.focus(); return; }
+    if (!time) { reminderTime.focus(); return; }
+    reminders.push({ id: uid(), text: text, time: time, early: reminderEarly ? Number(reminderEarly) : 0 });
+    saveReminders();
+    closeReminderEditor();
+    renderBigCalendar();
+  }
+
+  function reminderDue(r) {
+    return new Date(r.time).getTime() - (r.early || 0) * 60000;
+  }
+  function checkReminders() {
+    const now = Date.now();
+    for (const r of reminders) {
+      if (r.fired) continue;
+      if (now >= reminderDue(r)) {
+        r.fired = true;
+        saveReminders();
+        triggerAlarm(r);
+        break;
+      }
+    }
+  }
+  function triggerAlarm(r) {
+    currentAlarm = r;
+    alarmName.textContent = r.text;
+    alarmOverlay.hidden = false;
+    startAlarmSound();
+    startAlarmVibrate();
+  }
+  function stopAlarm() {
+    stopAlarmSound();
+    stopAlarmVibrate();
+    alarmOverlay.hidden = true;
+    if (currentAlarm) {
+      reminders = reminders.filter((x) => x.id !== currentAlarm.id);
+      saveReminders();
+      currentAlarm = null;
+    }
+    renderBigCalendar();
+  }
+
+  function startAlarmSound() {
+    stopAlarmSound();
+    try {
+      if (!clickAudioCtx) clickAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (clickAudioCtx.state === 'suspended') clickAudioCtx.resume();
+      const beep = () => {
+        const osc = clickAudioCtx.createOscillator();
+        const gain = clickAudioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(clickAudioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.2, clickAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, clickAudioCtx.currentTime + 0.25);
+        osc.start();
+        osc.stop(clickAudioCtx.currentTime + 0.25);
+      };
+      beep();
+      alarmSoundTimer = setInterval(beep, 500);
+    } catch (e) {}
+  }
+  function stopAlarmSound() {
+    if (alarmSoundTimer) { clearInterval(alarmSoundTimer); alarmSoundTimer = null; }
+  }
+
+  function startAlarmVibrate() {
+    stopAlarmVibrate();
+    if (navigator.vibrate) {
+      const buzz = () => navigator.vibrate([200, 100, 200]);
+      buzz();
+      alarmVibrateTimer = setInterval(buzz, 600);
+    }
+  }
+  function stopAlarmVibrate() {
+    if (alarmVibrateTimer) { clearInterval(alarmVibrateTimer); alarmVibrateTimer = null; }
+    if (navigator.vibrate) navigator.vibrate(0);
+  }
+
   // ---- 页面切换 ----
   function switchPage(page) {
     currentPage = page;
@@ -2706,13 +2831,25 @@
   });
   addReminder.addEventListener('click', () => {
     addMenu.hidden = true;
-    alert('提醒功能下一版再做');
+    openReminderEditor();
   });
   eventEditorCancel.addEventListener('click', closeEventEditor);
   eventEditorSave.addEventListener('click', collectAndSaveEvent);
   eventTimeClear.addEventListener('click', () => {
     eventTime.value = '';
   });
+  reminderEditorCancel.addEventListener('click', closeReminderEditor);
+  reminderEditorSave.addEventListener('click', saveReminder);
+  reminderEditorOverlay.addEventListener('click', (e) => {
+    if (e.target === reminderEditorOverlay) closeReminderEditor();
+  });
+  reminderEarlyOptions.forEach((b) => {
+    b.addEventListener('click', () => {
+      reminderEarly = b.dataset.early;
+      reminderEarlyOptions.forEach((x) => x.classList.toggle('active', x === b));
+    });
+  });
+  alarmCancel.addEventListener('click', stopAlarm);
   eventEditorOverlay.addEventListener('click', (e) => {
     if (e.target === eventEditorOverlay) closeEventEditor();
   });
@@ -3005,7 +3142,19 @@
   renderMemoCategoryMenu();
   renderDreams();
   renderProfile();
+  // 首次任意交互解锁音频，保证提醒声音能响
+  const unlockAudio = () => {
+    try {
+      if (!clickAudioCtx) clickAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (clickAudioCtx.state === 'suspended') clickAudioCtx.resume();
+    } catch (e) {}
+  };
+  window.addEventListener('pointerdown', unlockAudio);
+  window.addEventListener('touchstart', unlockAudio);
+
   setInterval(updateDate, 30000); // 跨天时自动刷新日期
+  setInterval(checkReminders, 1000); // 每秒检查提醒是否到期
+  checkReminders(); // 打开 App 时补触发已到期的提醒
 
   // ---- Service Worker ----
   if ('serviceWorker' in navigator) {

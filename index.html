@@ -474,6 +474,42 @@
     </div>
   </div>
 
+  <!-- 提醒事项编辑器 -->
+  <div class="editor-overlay" id="reminder-editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="提醒事项">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="reminder-editor-cancel">取消</button>
+        <span class="editor-title-label editor-title-dark">提醒事项</span>
+        <button type="button" class="editor-done" id="reminder-editor-save">保存</button>
+      </header>
+      <div class="editor-body">
+        <input type="text" id="reminder-text" class="memo-title-input" placeholder="提醒内容" maxlength="50" autocomplete="off">
+        <label class="field-label">提醒时间</label>
+        <input type="datetime-local" id="reminder-time" class="date-input">
+        <label class="field-label">提前提醒（可选）</label>
+        <div class="early-selector" id="reminder-early">
+          <button type="button" class="early-option active" data-early="">不提前</button>
+          <button type="button" class="early-option" data-early="5">提前5分</button>
+          <button type="button" class="early-option" data-early="10">提前10分</button>
+          <button type="button" class="early-option" data-early="15">提前15分</button>
+          <button type="button" class="early-option" data-early="30">提前30分</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提醒闹钟 -->
+  <div class="alarm-overlay" id="alarm-overlay" hidden>
+    <div class="alarm-sign">
+      <svg viewBox="0 0 100 92" class="alarm-triangle-svg" aria-hidden="true">
+        <path d="M50 4 L96 86 L4 86 Z" fill="none" stroke="#ff2d2d" stroke-width="6" stroke-linejoin="round"/>
+        <text x="50" y="72" text-anchor="middle" font-size="46" font-weight="900" fill="#ff2d2d">!</text>
+      </svg>
+    </div>
+    <div class="alarm-name" id="alarm-name"></div>
+    <button type="button" class="alarm-cancel" id="alarm-cancel">取消</button>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
