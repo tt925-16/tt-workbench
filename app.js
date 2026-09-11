@@ -9,12 +9,14 @@
   const MEMO_ACTIVE_CATEGORY_KEY = 'tt-workbench.memoActiveCategory';
   const DREAM_STORAGE_KEY = 'tt-workbench.dreams';
   const ME_STORAGE_KEY = 'tt-workbench.me';
+  const SIGNATURE_KEY = 'tt-workbench.signature';
   const CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
   // 元素引用
   const planList = document.getElementById('plan-list');
   const emptyEl = document.getElementById('plan-empty');
   const todayDateEl = document.getElementById('today-date');
+  const todaySignature = document.getElementById('today-signature');
   const addBtn = document.getElementById('btn-add');
   const segButtons = Array.from(document.querySelectorAll('.seg-btn'));
   const todayView = document.getElementById('today-view');
@@ -2276,6 +2278,15 @@
     openEditor();
   });
 
+  todaySignature.addEventListener('input', () => {
+    localStorage.setItem(SIGNATURE_KEY, todaySignature.textContent.trim());
+  });
+  todaySignature.addEventListener('blur', () => {
+    const v = todaySignature.textContent.trim();
+    todaySignature.textContent = v;
+    localStorage.setItem(SIGNATURE_KEY, v);
+  });
+
   segButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
       currentSeg = btn.dataset.seg;
@@ -2540,6 +2551,7 @@
   tabs.forEach((t) => t.addEventListener('click', () => switchPage(t.dataset.page)));
 
   // ---- 初始化 ----
+  todaySignature.textContent = localStorage.getItem(SIGNATURE_KEY) || '';
   rerenderTodayModule();
   renderLists();
   renderMemos();

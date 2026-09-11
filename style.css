@@ -88,6 +88,26 @@ main {
   color: var(--text-muted);
 }
 
+.today-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.today-signature {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  outline: none;
+  min-height: 18px;
+  word-break: break-word;
+}
+
+.today-signature:empty::before {
+  content: '写一句话…';
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
 .btn-add {
   width: 44px;
   height: 44px;
