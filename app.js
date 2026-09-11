@@ -2288,7 +2288,7 @@
   function getWeatherMap() {
     try { return JSON.parse(localStorage.getItem('tt-workbench.weather') || '{}'); } catch (e) { return {}; }
   }
-  function getWeather(ds) { return getWeatherMap()[ds] || '☀️'; }
+  function getWeather(ds) { return getWeatherMap()[ds] || ''; }
   function setWeather(ds, emoji) {
     const m = getWeatherMap();
     m[ds] = emoji;
@@ -2297,7 +2297,7 @@
   function getMoodMap() {
     try { return JSON.parse(localStorage.getItem('tt-workbench.mood') || '{}'); } catch (e) { return {}; }
   }
-  function getMood(ds) { return getMoodMap()[ds] || '😊'; }
+  function getMood(ds) { return getMoodMap()[ds] || ''; }
   function setMood(ds, emoji) {
     const m = getMoodMap();
     m[ds] = emoji;
@@ -2305,8 +2305,26 @@
   }
   function updateWeatherMoodUI() {
     const ds = dateStr(selectedDate);
-    weatherBtn.textContent = getWeather(ds);
-    moodBtn.textContent = getMood(ds);
+    const w = getWeather(ds);
+    const m = getMood(ds);
+    weatherBtn.textContent = w || '天气';
+    weatherBtn.style.fontSize = w ? '18px' : '12px';
+    weatherBtn.style.opacity = w ? '1' : '0.5';
+    moodBtn.textContent = m || '心情';
+    moodBtn.style.fontSize = m ? '18px' : '12px';
+    moodBtn.style.opacity = m ? '1' : '0.5';
+  }
+
+  const LUNAR_MONTHS = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '冬月', '腊月'];
+  const LUNAR_DAYS = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
+  function getLunarText(d) {
+    try {
+      const parts = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { month: 'numeric', day: 'numeric' }).formatToParts(d);
+      const m = parseInt(parts.find((p) => p.type === 'month').value, 10);
+      const day = parseInt(parts.find((p) => p.type === 'day').value, 10);
+      if (day === 1) return LUNAR_MONTHS[m - 1];
+      return LUNAR_DAYS[day - 1] || '';
+    } catch (e) { return ''; }
   }
 
   // ---- 重要事件 ----
@@ -2405,22 +2423,33 @@
         num.style.background = c.bg;
         num.style.color = c.text;
       } else if (ds === todayS) {
-        num.style.outline = '1px solid var(--accent)';
+        num.style.color = 'var(--accent)';
       }
-
-      const wm = document.createElement('span');
-      wm.className = 'big-day-wm';
-      wm.textContent = getWeather(ds) + getMood(ds);
-
-      const todos = plans.filter((p) => p.date === ds);
       cell.appendChild(num);
-      cell.appendChild(wm);
-      if (todos.length > 0) {
-        const todo = document.createElement('span');
-        todo.className = 'big-day-todo';
-        todo.textContent = todos.length + ' 项';
-        cell.appendChild(todo);
+
+      const lunar = document.createElement('span');
+      lunar.className = 'big-day-lunar';
+      lunar.textContent = getLunarText(new Date(year, month, d));
+      cell.appendChild(lunar);
+
+      const w = getWeather(ds);
+      const m = getMood(ds);
+      if (w || m) {
+        const wm = document.createElement('span');
+        wm.className = 'big-day-wm';
+        wm.textContent = w + m;
+        cell.appendChild(wm);
       }
+
+      dayEvents.slice(0, 3).forEach((e) => {
+        const ev = document.createElement('span');
+        ev.className = 'big-day-event';
+        const c = EVENT_COLORS[e.color] || EVENT_COLORS.mint;
+        ev.style.background = c.bg;
+        ev.style.color = c.text;
+        ev.textContent = e.text;
+        cell.appendChild(ev);
+      });
 
       cell.addEventListener('click', () => {
         selectedDate = new Date(year, month, d);
@@ -2540,10 +2569,9 @@
   });
   weatherOptions.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const w = btn.dataset.weather;
-      setWeather(dateStr(selectedDate), w);
-      weatherBtn.textContent = w;
+      setWeather(dateStr(selectedDate), btn.dataset.weather);
       weatherPicker.hidden = true;
+      updateWeatherMoodUI();
     });
   });
   moodBtn.addEventListener('click', () => {
@@ -2551,10 +2579,9 @@
   });
   moodOptions.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const m = btn.dataset.mood;
-      setMood(dateStr(selectedDate), m);
-      moodBtn.textContent = m;
+      setMood(dateStr(selectedDate), btn.dataset.mood);
       moodPicker.hidden = true;
+      updateWeatherMoodUI();
     });
   });
   document.addEventListener('click', (e) => {

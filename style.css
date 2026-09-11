@@ -2328,10 +2328,9 @@ main {
 }
 
 .big-day {
-  min-height: 58px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 4px 2px;
+  min-height: 78px;
+  border: none;
+  padding: 6px 3px;
   cursor: pointer;
   position: relative;
   display: flex;
@@ -2341,6 +2340,7 @@ main {
   background: transparent;
   font-size: 13px;
   color: var(--text);
+  overflow: hidden;
 }
 
 .big-day .big-day-num {
@@ -2368,6 +2368,25 @@ main {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.big-day .big-day-lunar {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.big-day .big-day-event {
+  font-size: 11px;
+  border-radius: 4px;
+  padding: 1px 5px;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+  line-height: 1.4;
 }
 
 .big-day.selected {
