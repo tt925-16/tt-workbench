@@ -2322,6 +2322,9 @@
     }
   });
 
+  // 禁止双指/双击缩放
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+
   segButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
       currentSeg = btn.dataset.seg;
