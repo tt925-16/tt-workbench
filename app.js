@@ -20,6 +20,9 @@
   const weatherBtn = document.getElementById('weather-btn');
   const weatherPicker = document.getElementById('weather-picker');
   const weatherOptions = Array.from(document.querySelectorAll('#weather-picker button'));
+  const moodBtn = document.getElementById('mood-btn');
+  const moodPicker = document.getElementById('mood-picker');
+  const moodOptions = Array.from(document.querySelectorAll('#mood-picker button'));
   const addBtn = document.getElementById('btn-add');
   const segButtons = Array.from(document.querySelectorAll('.seg-btn'));
   const todayView = document.getElementById('today-view');
@@ -2301,9 +2304,21 @@
       weatherPicker.hidden = true;
     });
   });
+  moodBtn.addEventListener('click', () => {
+    moodPicker.hidden = !moodPicker.hidden;
+  });
+  moodOptions.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const m = btn.dataset.mood;
+      moodBtn.textContent = m;
+      localStorage.setItem('tt-workbench.mood', m);
+      moodPicker.hidden = true;
+    });
+  });
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.diary-date-row') && !e.target.closest('.weather-picker')) {
+    if (!e.target.closest('.diary-date-row') && !e.target.closest('.weather-picker') && !e.target.closest('.mood-picker')) {
       weatherPicker.hidden = true;
+      moodPicker.hidden = true;
     }
   });
 
@@ -2573,6 +2588,7 @@
   // ---- 初始化 ----
   todaySignature.textContent = localStorage.getItem(SIGNATURE_KEY) || '';
   weatherBtn.textContent = localStorage.getItem('tt-workbench.weather') || '☀️';
+  moodBtn.textContent = localStorage.getItem('tt-workbench.mood') || '😊';
   rerenderTodayModule();
   renderLists();
   renderMemos();

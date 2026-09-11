@@ -44,7 +44,10 @@
         <div class="calendar" id="calendar"></div>
         <div class="diary-date-row">
           <h2 class="diary-date-label" id="diary-date-label"></h2>
-          <button class="weather-btn" id="weather-btn" aria-label="选择天气">☀️</button>
+          <div class="diary-date-actions">
+            <button class="weather-btn" id="weather-btn" aria-label="选择天气">☀️</button>
+            <button class="mood-btn" id="mood-btn" aria-label="选择心情">😊</button>
+          </div>
         </div>
         <div class="weather-picker" id="weather-picker" hidden>
           <button type="button" data-weather="☀️">☀️ 晴</button>
@@ -54,6 +57,13 @@
           <button type="button" data-weather="⛈️">⛈️ 雷雨</button>
           <button type="button" data-weather="❄️">❄️ 雪</button>
           <button type="button" data-weather="🌫️">🌫️ 雾</button>
+        </div>
+        <div class="mood-picker" id="mood-picker" hidden>
+          <button type="button" data-mood="😊">😊 笑脸</button>
+          <button type="button" data-mood="😐">😐 平静</button>
+          <button type="button" data-mood="😖">😖 烦躁</button>
+          <button type="button" data-mood="😠">😠 生气</button>
+          <button type="button" data-mood="😢">😢 难过</button>
         </div>
         <ul class="plan-list" id="diary-plan-list"></ul>
         <p class="empty-state" id="diary-plan-empty" hidden>这一天还没有计划，点右下角 + 添加</p>

@@ -1112,7 +1112,14 @@ main {
   margin-bottom: 10px;
 }
 
-.weather-btn {
+.diary-date-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.weather-btn,
+.mood-btn {
   background: transparent;
   border: 1.5px solid var(--border);
   border-radius: 999px;
@@ -1122,7 +1129,8 @@ main {
   line-height: 1.2;
 }
 
-.weather-picker {
+.weather-picker,
+.mood-picker {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -1133,7 +1141,8 @@ main {
   border-radius: 12px;
 }
 
-.weather-picker button {
+.weather-picker button,
+.mood-picker button {
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 999px;
