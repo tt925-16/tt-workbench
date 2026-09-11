@@ -57,6 +57,7 @@
           <button type="button" data-weather="⛈️">⛈️ 雷雨</button>
           <button type="button" data-weather="❄️">❄️ 雪</button>
           <button type="button" data-weather="🌫️">🌫️ 雾</button>
+          <button type="button" data-weather="">🈚️ 无</button>
         </div>
         <div class="mood-picker" id="mood-picker" hidden>
           <button type="button" data-mood="😊">😊 笑脸</button>
@@ -64,6 +65,7 @@
           <button type="button" data-mood="😖">😖 烦躁</button>
           <button type="button" data-mood="😠">😠 生气</button>
           <button type="button" data-mood="😢">😢 难过</button>
+          <button type="button" data-mood="">🈚️ 无</button>
         </div>
         <ul class="plan-list" id="diary-plan-list"></ul>
         <p class="empty-state" id="diary-plan-empty" hidden>这一天还没有计划，点右下角 + 添加</p>
@@ -459,6 +461,7 @@
         <input type="text" id="event-text" class="memo-title-input" placeholder="事件内容" maxlength="50" autocomplete="off">
         <label class="field-label">时间（可选，具体到年月日时分）</label>
         <input type="datetime-local" id="event-time" class="date-input">
+        <button type="button" class="clear-time-btn" id="event-time-clear">不选具体时间</button>
         <label class="field-label">颜色</label>
         <div class="color-picker" id="event-color-picker">
           <button type="button" class="color-dot active" data-color="mint" style="background:#a7f3d0"></button>

@@ -37,6 +37,7 @@
   const eventEditorSave = document.getElementById('event-editor-save');
   const eventText = document.getElementById('event-text');
   const eventTime = document.getElementById('event-time');
+  const eventTimeClear = document.getElementById('event-time-clear');
   const eventColorDots = Array.from(document.querySelectorAll('#event-color-picker .color-dot'));
   const addBtn = document.getElementById('btn-add');
   const segButtons = Array.from(document.querySelectorAll('.seg-btn'));
@@ -568,6 +569,81 @@
     renderToday();
     renderCalendar();
     renderDiaryPlans();
+  }
+
+  // ---- 长按拖拽排序 ----
+  function movePlanInDate(ds, from, to) {
+    const day = plans.filter((p) => p.date === ds);
+    if (from < 0 || from >= day.length || to < 0 || to > day.length) return;
+    const [moved] = day.splice(from, 1);
+    day.splice(to, 0, moved);
+    let di = 0;
+    plans = plans.map((p) => (p.date === ds ? day[di++] : p));
+    save();
+  }
+
+  function enablePlanDrag(listEl, dateOf) {
+    let dragWrap = null;
+    let dragIndex = -1;
+    let startY = 0;
+    let pressTimer = null;
+    let dragging = false;
+
+    listEl.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button, input, textarea')) return;
+      const wrap = e.target.closest('.swipe-item');
+      if (!wrap) return;
+      dragWrap = wrap;
+      dragIndex = Array.from(listEl.querySelectorAll('.swipe-item')).indexOf(wrap);
+      startY = e.clientY;
+      dragging = false;
+      pressTimer = setTimeout(() => {
+        dragging = true;
+        dragWrap.classList.add('dragging');
+        dragWrap.style.transition = 'none';
+      }, 450);
+    });
+
+    listEl.addEventListener('pointermove', (e) => {
+      if (!dragWrap) return;
+      if (!dragging) {
+        if (Math.abs(e.clientY - startY) > 10) {
+          clearTimeout(pressTimer);
+          dragWrap = null;
+          dragIndex = -1;
+        }
+        return;
+      }
+      dragWrap.style.transform = 'translateY(' + (e.clientY - startY) + 'px)';
+    });
+
+    const end = () => {
+      clearTimeout(pressTimer);
+      if (!dragWrap) return;
+      if (dragging) {
+        const rect = dragWrap.getBoundingClientRect();
+        const centerY = rect.top + rect.height / 2;
+        let targetIndex = 0;
+        Array.from(listEl.querySelectorAll('.swipe-item')).forEach((w) => {
+          if (w === dragWrap) return;
+          const r = w.getBoundingClientRect();
+          if (r.top + r.height / 2 < centerY) targetIndex++;
+        });
+        dragWrap.style.transform = '';
+        dragWrap.classList.remove('dragging');
+        dragWrap.style.transition = '';
+        if (targetIndex !== dragIndex) {
+          movePlanInDate(dateOf(), dragIndex, targetIndex);
+          rerenderTodayModule();
+        }
+        dragging = false;
+      }
+      dragWrap = null;
+      dragIndex = -1;
+    };
+
+    listEl.addEventListener('pointerup', end);
+    listEl.addEventListener('pointercancel', end);
   }
 
   // ---- 编辑器 ----
@@ -2601,12 +2677,21 @@
     }
   });
 
+  let calTapTime = 0;
   calendarWrap.addEventListener('click', (e) => {
-    if (!e.target.closest('.cal-day')) {
+    if (e.target.closest('.cal-day') || e.target.closest('.cal-nav')) return;
+    const now = Date.now();
+    if (now - calTapTime < 350) {
+      calTapTime = 0;
       openBigCalendar();
+    } else {
+      calTapTime = now;
     }
   });
   bigCalendarBack.addEventListener('click', closeBigCalendar);
+
+  enablePlanDrag(planList, () => todayStr());
+  enablePlanDrag(diaryPlanList, () => dateStr(selectedDate));
   addEventBtn.addEventListener('click', () => {
     addMenu.hidden = !addMenu.hidden;
   });
@@ -2620,6 +2705,9 @@
   });
   eventEditorCancel.addEventListener('click', closeEventEditor);
   eventEditorSave.addEventListener('click', collectAndSaveEvent);
+  eventTimeClear.addEventListener('click', () => {
+    eventTime.value = '';
+  });
   eventEditorOverlay.addEventListener('click', (e) => {
     if (e.target === eventEditorOverlay) closeEventEditor();
   });

@@ -1288,6 +1288,18 @@ main {
   margin-bottom: 8px;
 }
 
+.clear-time-btn {
+  display: block;
+  margin: 0 0 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 .toggle-switch {
   width: 48px;
   height: 26px;
