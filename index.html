@@ -24,7 +24,7 @@
     <section class="page" id="page-today">
       <div class="segmented">
         <button class="seg-btn active" data-seg="today">今日</button>
-        <button class="seg-btn" data-seg="diary">日记</button>
+        <button class="seg-btn" data-seg="diary">日历</button>
       </div>
 
       <div id="today-view">
@@ -42,7 +42,19 @@
 
       <div id="diary-view" hidden>
         <div class="calendar" id="calendar"></div>
-        <h2 class="diary-date-label" id="diary-date-label"></h2>
+        <div class="diary-date-row">
+          <h2 class="diary-date-label" id="diary-date-label"></h2>
+          <button class="weather-btn" id="weather-btn" aria-label="选择天气">☀️</button>
+        </div>
+        <div class="weather-picker" id="weather-picker" hidden>
+          <button type="button" data-weather="☀️">☀️ 晴</button>
+          <button type="button" data-weather="🌤️">🌤️ 晴间多云</button>
+          <button type="button" data-weather="☁️">☁️ 多云</button>
+          <button type="button" data-weather="🌧️">🌧️ 雨</button>
+          <button type="button" data-weather="⛈️">⛈️ 雷雨</button>
+          <button type="button" data-weather="❄️">❄️ 雪</button>
+          <button type="button" data-weather="🌫️">🌫️ 雾</button>
+        </div>
         <ul class="plan-list" id="diary-plan-list"></ul>
         <p class="empty-state" id="diary-plan-empty" hidden>这一天还没有计划，点右下角 + 添加</p>
       </div>

@@ -17,6 +17,9 @@
   const emptyEl = document.getElementById('plan-empty');
   const todayDateEl = document.getElementById('today-date');
   const todaySignature = document.getElementById('today-signature');
+  const weatherBtn = document.getElementById('weather-btn');
+  const weatherPicker = document.getElementById('weather-picker');
+  const weatherOptions = Array.from(document.querySelectorAll('#weather-picker button'));
   const addBtn = document.getElementById('btn-add');
   const segButtons = Array.from(document.querySelectorAll('.seg-btn'));
   const todayView = document.getElementById('today-view');
@@ -2287,6 +2290,23 @@
     localStorage.setItem(SIGNATURE_KEY, v);
   });
 
+  weatherBtn.addEventListener('click', () => {
+    weatherPicker.hidden = !weatherPicker.hidden;
+  });
+  weatherOptions.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const w = btn.dataset.weather;
+      weatherBtn.textContent = w;
+      localStorage.setItem('tt-workbench.weather', w);
+      weatherPicker.hidden = true;
+    });
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.diary-date-row') && !e.target.closest('.weather-picker')) {
+      weatherPicker.hidden = true;
+    }
+  });
+
   segButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
       currentSeg = btn.dataset.seg;
@@ -2552,6 +2572,7 @@
 
   // ---- 初始化 ----
   todaySignature.textContent = localStorage.getItem(SIGNATURE_KEY) || '';
+  weatherBtn.textContent = localStorage.getItem('tt-workbench.weather') || '☀️';
   rerenderTodayModule();
   renderLists();
   renderMemos();
