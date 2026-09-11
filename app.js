@@ -2351,7 +2351,6 @@
   function openBigCalendar() {
     bigCalendar.hidden = false;
     renderBigCalendar();
-    renderBigCalendarDetail();
   }
   function closeBigCalendar() {
     bigCalendar.hidden = true;
@@ -2441,7 +2440,7 @@
         cell.appendChild(wm);
       }
 
-      dayEvents.slice(0, 3).forEach((e) => {
+      dayEvents.forEach((e) => {
         const ev = document.createElement('span');
         ev.className = 'big-day-event';
         const c = EVENT_COLORS[e.color] || EVENT_COLORS.mint;
@@ -2451,10 +2450,16 @@
         cell.appendChild(ev);
       });
 
+      plans.filter((p) => p.date === ds).forEach((p) => {
+        const todo = document.createElement('span');
+        todo.className = 'big-day-todo';
+        todo.textContent = p.title;
+        cell.appendChild(todo);
+      });
+
       cell.addEventListener('click', () => {
         selectedDate = new Date(year, month, d);
         renderBigCalendar();
-        renderBigCalendarDetail();
       });
 
       grid.appendChild(cell);
@@ -2470,7 +2475,6 @@
     const lastDay = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
     selectedDate = new Date(base.getFullYear(), base.getMonth(), Math.min(d, lastDay));
     renderBigCalendar();
-    renderBigCalendarDetail();
   }
 
   function renderBigCalendarDetail() {
@@ -2533,7 +2537,6 @@
     saveEvents();
     closeEventEditor();
     renderBigCalendar();
-    renderBigCalendarDetail();
   }
 
   // ---- 页面切换 ----

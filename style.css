@@ -2328,7 +2328,7 @@ main {
 }
 
 .big-day {
-  min-height: 78px;
+  min-height: 120px;
   border: none;
   padding: 6px 3px;
   cursor: pointer;
@@ -2364,10 +2364,12 @@ main {
   background: rgba(59, 130, 246, 0.15);
   border-radius: 999px;
   padding: 1px 6px;
-  max-width: 100%;
+  width: 100%;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+  text-align: left;
+  line-height: 1.4;
 }
 
 .big-day .big-day-lunar {
