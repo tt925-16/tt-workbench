@@ -585,17 +585,20 @@
   function enablePlanDrag(listEl, dateOf) {
     let dragWrap = null;
     let dragIndex = -1;
+    let startX = 0;
     let startY = 0;
     let pressTimer = null;
     let dragging = false;
 
-    listEl.addEventListener('pointerdown', (e) => {
+    listEl.addEventListener('touchstart', (e) => {
       if (e.target.closest('button, input, textarea')) return;
       const wrap = e.target.closest('.swipe-item');
       if (!wrap) return;
+      const t = e.touches[0];
       dragWrap = wrap;
       dragIndex = Array.from(listEl.querySelectorAll('.swipe-item')).indexOf(wrap);
-      startY = e.clientY;
+      startX = t.clientX;
+      startY = t.clientY;
       dragging = false;
       pressTimer = setTimeout(() => {
         dragging = true;
@@ -604,18 +607,20 @@
       }, 450);
     });
 
-    listEl.addEventListener('pointermove', (e) => {
+    listEl.addEventListener('touchmove', (e) => {
       if (!dragWrap) return;
+      const t = e.touches[0];
       if (!dragging) {
-        if (Math.abs(e.clientY - startY) > 10) {
+        if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) {
           clearTimeout(pressTimer);
           dragWrap = null;
           dragIndex = -1;
         }
         return;
       }
-      dragWrap.style.transform = 'translateY(' + (e.clientY - startY) + 'px)';
-    });
+      e.preventDefault();
+      dragWrap.style.transform = 'translateY(' + (t.clientY - startY) + 'px)';
+    }, { passive: false });
 
     const end = () => {
       clearTimeout(pressTimer);
@@ -642,8 +647,8 @@
       dragIndex = -1;
     };
 
-    listEl.addEventListener('pointerup', end);
-    listEl.addEventListener('pointercancel', end);
+    listEl.addEventListener('touchend', end);
+    listEl.addEventListener('touchcancel', end);
   }
 
   // ---- 编辑器 ----
