@@ -660,7 +660,7 @@
     const desc = editorDesc.value.trim();
     const subs = collectSubs(editorSubs);
 
-    plans.unshift({
+    plans.push({
       id: uid(),
       title: title,
       desc: desc,
@@ -2446,7 +2446,11 @@
         const c = EVENT_COLORS[e.color] || EVENT_COLORS.mint;
         ev.style.background = c.bg;
         ev.style.color = c.text;
-        ev.textContent = e.text;
+        let t = e.text;
+        if (e.time && e.time.length >= 16) {
+          t = e.time.slice(11, 16) + ' ' + e.text;
+        }
+        ev.textContent = t;
         cell.appendChild(ev);
       });
 
@@ -2454,6 +2458,7 @@
         const todo = document.createElement('span');
         todo.className = 'big-day-todo';
         todo.textContent = p.title;
+        if (p.done) todo.style.textDecoration = 'line-through';
         cell.appendChild(todo);
       });
 
@@ -2533,7 +2538,9 @@
   function collectAndSaveEvent() {
     const text = eventText.value.trim();
     if (!text) { eventText.focus(); return; }
-    events.push({ id: uid(), date: dateStr(selectedDate), text: text, time: eventTime.value, color: eventColor });
+    const dt = eventTime.value;
+    const date = dt ? dt.slice(0, 10) : dateStr(selectedDate);
+    events.push({ id: uid(), date: date, text: text, time: dt, color: eventColor });
     saveEvents();
     closeEventEditor();
     renderBigCalendar();
