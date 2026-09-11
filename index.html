@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="description" content="tt的个人工作台 — 今日待办 / 清单 / 备忘录">
+  <title>tt的工作台</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-32.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="tt的工作台">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <!-- 今日 -->
+    <section class="page" id="page-today">
+      <div class="segmented">
+        <button class="seg-btn active" data-seg="today">今日</button>
+        <button class="seg-btn" data-seg="diary">日记</button>
+      </div>
+
+      <div id="today-view">
+        <header class="today-header">
+          <h1 class="today-title">今日 To Do</h1>
+          <span class="today-date" id="today-date">9月10日</span>
+        </header>
+
+        <ul class="plan-list" id="plan-list"></ul>
+        <p class="empty-state" id="plan-empty" hidden>还没有计划，点右下角 + 添加今日想做的事</p>
+      </div>
+
+      <div id="diary-view" hidden>
+        <div class="calendar" id="calendar"></div>
+        <h2 class="diary-date-label" id="diary-date-label"></h2>
+        <ul class="plan-list" id="diary-plan-list"></ul>
+        <p class="empty-state" id="diary-plan-empty" hidden>这一天还没有计划，点右下角 + 添加</p>
+      </div>
+
+      <div class="fab">
+        <button class="btn-add" id="btn-add" aria-label="添加待办">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ALL LIST -->
+    <section class="page" id="page-all" hidden>
+      <header class="list-header">
+        <h1 class="list-title">ALL LIST</h1>
+      </header>
+      <ul class="list-collection" id="list-collection"></ul>
+      <p class="empty-state" id="list-empty" hidden>还没有清单，点右下角 + 创建一个</p>
+
+      <div class="fab">
+        <button class="btn-add" id="btn-add-list" aria-label="创建列表">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 备忘录 -->
+    <section class="page" id="page-memo" hidden>
+      <header class="list-header memo-header">
+        <button class="memo-category-btn" id="memo-category-btn">
+          <span class="memo-category-label" id="memo-category-label">备忘录</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="memo-category-menu" id="memo-category-menu" hidden></div>
+      </header>
+      <ul class="memo-list" id="memo-list"></ul>
+      <p class="empty-state" id="memo-empty" hidden>还没有备忘录，点右下角 + 新建一篇</p>
+
+      <div class="fab">
+        <button class="btn-add" id="btn-add-memo" aria-label="新建备忘录">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 设置 -->
+    <!-- 梦 -->
+    <section class="page" id="page-dream" hidden>
+      <header class="list-header dream-header">
+        <h1 class="list-title">梦</h1>
+        <button class="music-btn" id="btn-dream-music" aria-label="音乐（长按添加）">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        </button>
+      </header>
+      <ul class="dream-timeline" id="dream-list"></ul>
+      <p class="empty-state" id="dream-empty" hidden>还没有记录，点右下角 + 记录你的梦</p>
+
+      <div class="fab">
+        <button class="btn-add" id="btn-add-dream" aria-label="添加记录">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+
+      <div class="music-bar" id="music-bar" hidden>
+        <div class="music-info">
+          <span class="music-name" id="music-name">未播放</span>
+        </div>
+        <div class="music-controls">
+          <button class="music-ctrl" id="music-prev" aria-label="上一首">⏮</button>
+          <button class="music-ctrl" id="music-play" aria-label="播放/暂停">▶️</button>
+          <button class="music-ctrl" id="music-next" aria-label="下一首">⏭</button>
+          <button class="music-ctrl" id="music-mode" aria-label="播放模式">🔁</button>
+          <button class="music-ctrl" id="music-list-btn" aria-label="歌曲列表">📃</button>
+        </div>
+      </div>
+
+      <div class="music-list-panel" id="music-list-panel" hidden>
+        <ul class="music-list" id="music-list"></ul>
+      </div>
+
+      <input type="file" id="music-file-input" accept="audio/*,video/*" multiple hidden>
+    </section>
+
+    <!-- 我 -->
+    <section class="page" id="page-me" hidden>
+      <div class="me-profile">
+        <div class="me-avatar" id="me-avatar" title="点击更换头像">
+          <img id="me-avatar-img" alt="头像" hidden>
+          <span class="me-avatar-placeholder" id="me-avatar-placeholder">👤</span>
+        </div>
+        <div class="me-id" id="me-id" contenteditable="true" spellcheck="false"></div>
+        <div class="me-signature" id="me-signature" contenteditable="true" spellcheck="false"></div>
+        <input type="file" id="me-avatar-file" accept="image/*" hidden>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="主导航">
+    <div class="tabbar-inner">
+      <button class="tab active" data-page="today" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span>今日</span>
+      </button>
+      <button class="tab" data-page="all" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span>ALL LIST</span>
+      </button>
+      <button class="tab" data-page="memo" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+        <span>备忘录</span>
+      </button>
+      <button class="tab" data-page="dream" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span>梦</span>
+      </button>
+      <button class="tab" data-page="me" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>我</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- 新建计划编辑器 -->
+  <div class="editor-overlay" id="editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="新建今日计划">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="editor-cancel">取消</button>
+        <span class="editor-title-label">今天你想做什么呢？</span>
+        <button type="button" class="editor-done" id="editor-done">完成</button>
+      </header>
+      <div class="editor-body">
+        <input type="text" id="editor-title" class="editor-title-input" placeholder="我想…" maxlength="100" autocomplete="off">
+        <input type="text" id="editor-desc" class="editor-desc-input" placeholder="描述一下这件事（可选）" maxlength="200" autocomplete="off">
+        <div class="editor-subs" id="editor-subs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新建编辑器（清单/进度） -->
+  <div class="editor-overlay" id="list-editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="新建">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="list-editor-cancel">取消</button>
+        <span class="editor-title-label editor-title-dark">添加事项</span>
+        <span></span>
+      </header>
+      <div class="editor-body">
+        <div class="kind-selector" id="kind-selector">
+          <button type="button" class="kind-option active" data-kind="list">清单</button>
+          <span class="kind-slash">/</span>
+          <button type="button" class="kind-option" data-kind="progress">进度</button>
+        </div>
+
+        <div id="list-fields">
+          <div class="type-selector" id="list-type-selector">
+            <button type="button" class="type-option type-warm active" data-type="todo">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
+              <span>待办清单</span>
+            </button>
+            <button type="button" class="type-option type-pink" data-type="wish">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span>心愿清单</span>
+            </button>
+          </div>
+          <input type="text" id="list-name-input" class="list-name-input" placeholder="输入列表名" maxlength="50" autocomplete="off">
+        </div>
+
+        <div id="progress-fields" hidden>
+          <input type="text" id="progress-name-input" class="list-name-input" placeholder="输入项目名称" maxlength="50" autocomplete="off">
+          <div class="type-selector" id="progress-type-selector">
+            <button type="button" class="type-option active" data-ptype="number">数字进度</button>
+            <button type="button" class="type-option" data-ptype="event">事件进度</button>
+          </div>
+
+          <div id="number-progress-fields">
+            <div class="field-row">
+              <label>起始数字</label>
+              <input type="number" id="np-start" class="num-input" inputmode="decimal">
+              <input type="text" id="np-unit" class="unit-input" placeholder="单位">
+            </div>
+            <div class="field-row">
+              <label>目标数字</label>
+              <input type="number" id="np-target" class="num-input" inputmode="decimal">
+              <input type="text" id="np-target-unit" class="unit-input" placeholder="单位">
+            </div>
+            <div class="field-row">
+              <label>目标日期</label>
+              <button type="button" class="toggle-switch" id="np-date-toggle" aria-pressed="false"></button>
+            </div>
+            <input type="date" id="np-date" class="date-input" hidden>
+          </div>
+
+          <div id="event-progress-fields" hidden>
+            <div class="editor-subs" id="event-task-list"></div>
+            <button type="button" class="add-task-btn" id="add-event-task">+ 添加事情</button>
+            <div class="field-row">
+              <label>结束日期</label>
+              <button type="button" class="toggle-switch" id="ep-date-toggle" aria-pressed="false"></button>
+            </div>
+            <input type="date" id="ep-date" class="date-input" hidden>
+          </div>
+        </div>
+      </div>
+      <div class="editor-footer">
+        <button type="button" class="btn-save" id="list-editor-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 清单详情页 -->
+  <div class="detail-overlay" id="list-detail" hidden>
+    <header class="detail-header">
+      <button type="button" class="back-btn" id="detail-back" aria-label="返回">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="detail-title">
+        <h1 class="detail-name" id="detail-name">列表名</h1>
+        <span class="detail-type" id="detail-type">代办清单</span>
+      </div>
+    </header>
+    <div class="detail-content">
+      <ul class="detail-items" id="detail-items"></ul>
+      <p class="empty-state" id="detail-empty" hidden>还没有事项，点右下角 + 添加一件要做的事</p>
+    </div>
+    <div class="fab fab-detail">
+      <button class="btn-add" id="btn-add-item" aria-label="添加事项">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 进度详情 -->
+  <div class="detail-overlay" id="progress-detail" hidden>
+    <header class="detail-header">
+      <button type="button" class="back-btn" id="progress-back" aria-label="返回">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+    </header>
+    <div class="detail-content" id="progress-detail-content"></div>
+    <div class="fab fab-detail" id="progress-diary-fab" hidden>
+      <button class="btn-add" id="btn-diary-open" aria-label="项目日记">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 列表事项编辑器 -->
+  <div class="editor-overlay" id="item-editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="添加事项">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="item-editor-cancel">取消</button>
+        <span class="editor-title-label">添加事项</span>
+        <button type="button" class="editor-done" id="item-editor-done">完成</button>
+      </header>
+      <div class="editor-body">
+        <input type="text" id="item-editor-title" class="editor-title-input" placeholder="我想…" maxlength="100" autocomplete="off">
+        <input type="text" id="item-editor-desc" class="editor-desc-input" placeholder="描述一下这件事（可选）" maxlength="200" autocomplete="off">
+        <div class="editor-subs" id="item-editor-subs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 备忘录编辑器 -->
+  <div class="editor-overlay" id="memo-editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="编辑备忘录">
+      <header class="editor-header">
+        <button type="button" class="back-btn" id="memo-editor-back" aria-label="返回">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span class="editor-title-label" id="memo-editor-date"></span>
+        <button type="button" class="editor-done" id="memo-editor-done">完成</button>
+      </header>
+      <div class="editor-body">
+        <input type="text" id="memo-editor-title" class="memo-title-input" placeholder="标题" maxlength="100" autocomplete="off">
+        <textarea id="memo-editor-body" class="memo-body-input" placeholder="开始输入…" autocomplete="off"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 项目日记 -->
+  <div class="detail-overlay" id="project-diary" hidden>
+    <header class="detail-header">
+      <button type="button" class="back-btn" id="diary-back" aria-label="返回">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="detail-title">
+        <h1 class="detail-name" id="diary-title">项目日记</h1>
+      </div>
+    </header>
+    <div class="detail-content">
+      <div class="diary-page" id="diary-page"></div>
+    </div>
+    <div class="diary-nav">
+      <button type="button" class="diary-nav-btn" id="diary-prev" aria-label="上一页">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="diary-indicator" id="diary-indicator"></span>
+      <button type="button" class="diary-nav-btn" id="diary-next" aria-label="下一页">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </div>
+    <div class="fab fab-detail">
+      <button class="btn-add" id="btn-diary-write" aria-label="书写">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 日记书写（便利贴） -->
+  <div class="editor-overlay" id="diary-note-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="书写">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="diary-note-cancel">取消</button>
+        <span class="editor-title-label">书写</span>
+        <button type="button" class="editor-done" id="diary-note-save">保存</button>
+      </header>
+      <div class="editor-body">
+        <input type="date" id="diary-note-date" class="date-input">
+        <div class="type-selector" id="diary-note-type-selector">
+          <button type="button" class="type-option active" data-type="复盘">复盘</button>
+          <button type="button" class="type-option" data-type="备注">备注</button>
+        </div>
+        <textarea id="diary-note-text" class="memo-body-input" placeholder="写点什么…" autocomplete="off"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 梦记录编辑器 -->
+  <div class="editor-overlay" id="dream-editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="记录梦">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="dream-editor-cancel">取消</button>
+        <span class="editor-title-label editor-title-dark">记录</span>
+        <span></span>
+      </header>
+      <div class="editor-body">
+        <div class="kind-selector" id="dream-kind-selector">
+          <button type="button" class="kind-option active" data-kind="text">文字</button>
+          <button type="button" class="kind-option" data-kind="photo">照片</button>
+        </div>
+
+        <div id="dream-text-fields">
+          <input type="text" id="dream-text-title" class="memo-title-input" placeholder="大标题" maxlength="100" autocomplete="off">
+          <textarea id="dream-text-body" class="memo-body-input" placeholder="写点什么…" autocomplete="off"></textarea>
+        </div>
+
+        <div id="dream-photo-fields" hidden>
+          <input type="text" id="dream-photo-top" class="memo-title-input" placeholder="上方文字（可选）" autocomplete="off">
+          <input type="file" id="dream-photo-file" accept="image/*,video/*" hidden>
+          <div class="photo-picker">
+            <button type="button" class="btn-save" id="dream-photo-select">选择照片 / 视频</button>
+            <div class="photo-preview" id="dream-photo-preview" hidden></div>
+          </div>
+          <input type="text" id="dream-photo-bottom" class="memo-title-input" placeholder="下方文字（可选）" autocomplete="off">
+        </div>
+      </div>
+      <div class="editor-footer">
+        <button type="button" class="btn-save" id="dream-editor-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

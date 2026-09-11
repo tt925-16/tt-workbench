@@ -1,0 +1,7 @@
+node_modules/
+.oss-config.json
+deploy.js
+package.json
+package-lock.json
+generate-icons.js
+.DS_Store
