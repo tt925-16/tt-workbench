@@ -2323,9 +2323,13 @@
     currentMusicIndex = index;
     ensureAudio();
     const item = musicList[index];
-    if (!item._url && item.key) {
-      const blob = await idbGet(item.key).catch(() => null);
-      if (blob) item._url = URL.createObjectURL(blob);
+    if (!item._url) {
+      if (item._file) {
+        item._url = URL.createObjectURL(item._file);
+      } else if (item.key) {
+        const blob = await idbGet(item.key).catch(() => null);
+        if (blob) item._url = URL.createObjectURL(blob);
+      }
     }
     musicAudio.src = item._url || '';
     musicAudio.play().catch(() => {});
@@ -2401,6 +2405,7 @@
         name: '🎵音乐' + musicCounter,
         key: key,
         type: file.type.startsWith('video') ? 'video' : 'audio',
+        _file: file,
       });
       idbPut(key, file).catch(() => {});
     }
