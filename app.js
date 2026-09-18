@@ -2395,7 +2395,8 @@
     updateMusicUI();
   }
 
-  function addMusicFiles(files) {
+  async function addMusicFiles(files) {
+    const puts = [];
     for (const file of files) {
       if (!file.type.startsWith('audio') && !file.type.startsWith('video')) continue;
       musicCounter++;
@@ -2407,12 +2408,13 @@
         type: file.type.startsWith('video') ? 'video' : 'audio',
         _file: file,
       });
-      idbPut(key, file).catch(() => {});
+      puts.push(idbPut(key, file));
     }
     saveMusic();
     updateMusicUI();
     renderMusicList();
     if (musicList.length && currentMusicIndex < 0) playMusic(0);
+    await Promise.all(puts.map((p) => p.catch(() => {})));
   }
 
   function updateMusicUI() {
