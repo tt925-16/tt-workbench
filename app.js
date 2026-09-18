@@ -9,6 +9,7 @@
   const MEMO_ACTIVE_CATEGORY_KEY = 'tt-workbench.memoActiveCategory';
   const DREAM_STORAGE_KEY = 'tt-workbench.dreams';
   const ME_STORAGE_KEY = 'tt-workbench.me';
+  const MUSIC_STORAGE_KEY = 'tt-workbench.music';
   const SIGNATURE_KEY = 'tt-workbench.signature';
   const CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
@@ -185,15 +186,16 @@
   let currentDreamKind = 'text';
   let currentDreamMedia = null;
   let currentDreamMediaType = null;
+  let currentDreamMediaFile = null;
   let profile = loadProfile();
-  let musicList = [];
+  let musicList = loadMusic();
   let currentMusicIndex = -1;
   let isMusicPlaying = false;
   let playMode = 'list';
   let musicAudio = null;
   let clickAudioCtx = null;
   let musicExited = false;
-  let musicCounter = 0;
+  let musicCounter = musicList.length;
   let events = loadEvents();
   let reminders = loadReminders();
   let reminderEarly = '';
@@ -216,6 +218,7 @@
   let currentSeg = 'today';
   let selectedDate = new Date();
   let currentPlanDate = todayStr();
+  let editingPlanId = null;
 
   // ---- 工具 ----
   function uid() {
@@ -430,6 +433,11 @@
 
     enableSwipe(li, content);
 
+    content.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      if (handlers.onEdit) handlers.onEdit();
+    });
+
     return li;
   }
 
@@ -459,6 +467,7 @@
           rerenderTodayModule();
         }
       },
+      onEdit: () => openEditEditor(plan),
     });
   }
 
@@ -667,9 +676,21 @@
 
   // ---- 编辑器 ----
   function openEditor() {
+    editingPlanId = null;
     editorTitle.value = '';
     editorDesc.value = '';
     editorSubs.innerHTML = '';
+    addSubRow(editorSubs, false, null);
+    editorOverlay.hidden = false;
+    requestAnimationFrame(() => editorTitle.focus());
+  }
+
+  function openEditEditor(plan) {
+    editingPlanId = plan.id;
+    editorTitle.value = plan.title || '';
+    editorDesc.value = plan.desc || '';
+    editorSubs.innerHTML = '';
+    (plan.subs || []).forEach((s) => addSubRow(editorSubs, false, s));
     addSubRow(editorSubs, false, null);
     editorOverlay.hidden = false;
     requestAnimationFrame(() => editorTitle.focus());
@@ -755,15 +776,25 @@
     const desc = editorDesc.value.trim();
     const subs = collectSubs(editorSubs);
 
-    plans.push({
-      id: uid(),
-      title: title,
-      desc: desc,
-      subs: subs,
-      done: false,
-      date: currentPlanDate,
-      createdAt: Date.now(),
-    });
+    if (editingPlanId) {
+      const p = plans.find((x) => x.id === editingPlanId);
+      if (p) {
+        p.title = title;
+        p.desc = desc;
+        p.subs = subs;
+      }
+      editingPlanId = null;
+    } else {
+      plans.push({
+        id: uid(),
+        title: title,
+        desc: desc,
+        subs: subs,
+        done: false,
+        date: currentPlanDate,
+        createdAt: Date.now(),
+      });
+    }
     save();
     rerenderTodayModule();
     closeEditor();
@@ -1880,12 +1911,37 @@
     memoCategoryLabel.textContent = activeCategory;
     memoCategoryMenu.innerHTML = '';
     memoCategories.forEach((cat) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'swipe-item memo-cat-swipe';
+
+      const actions = document.createElement('div');
+      actions.className = 'swipe-actions';
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'swipe-btn swipe-edit';
+      editBtn.textContent = '编辑';
+      editBtn.addEventListener('click', () => editMemoCategory(cat));
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'swipe-btn swipe-delete';
+      delBtn.textContent = '删除';
+      delBtn.addEventListener('click', () => deleteMemoCategory(cat));
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+
+      const content = document.createElement('div');
+      content.className = 'swipe-content';
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'memo-cat-option' + (cat === activeCategory ? ' active' : '');
       btn.textContent = cat;
       btn.addEventListener('click', () => switchMemoCategory(cat));
-      memoCategoryMenu.appendChild(btn);
+      content.appendChild(btn);
+
+      wrap.appendChild(actions);
+      wrap.appendChild(content);
+      enableSwipe(wrap, content);
+      memoCategoryMenu.appendChild(wrap);
     });
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
@@ -1901,6 +1957,33 @@
     renderMemoCategoryMenu();
     renderMemos();
     memoCategoryMenu.hidden = true;
+  }
+
+  function editMemoCategory(cat) {
+    const name = prompt('分类名称', cat);
+    if (!name || name.trim() === '' || name.trim() === cat) return;
+    const newName = name.trim();
+    if (memoCategories.includes(newName)) { alert('已存在同名分类'); return; }
+    memoCategories = memoCategories.map((c) => (c === cat ? newName : c));
+    memos.forEach((m) => { if (m.category === cat) m.category = newName; });
+    if (activeCategory === cat) activeCategory = newName;
+    saveMemoCategories();
+    saveMemos();
+    saveActiveCategory();
+    renderMemoCategoryMenu();
+    renderMemos();
+  }
+
+  function deleteMemoCategory(cat) {
+    if (!confirm('删除分类「' + cat + '」？该分类下的备忘录会移到「备忘录」')) return;
+    memoCategories = memoCategories.filter((c) => c !== cat);
+    memos.forEach((m) => { if (m.category === cat) m.category = '备忘录'; });
+    if (activeCategory === cat) activeCategory = '备忘录';
+    saveMemoCategories();
+    saveMemos();
+    saveActiveCategory();
+    renderMemoCategoryMenu();
+    renderMemos();
   }
 
   function showAddCategoryInput(addBtn) {
@@ -2078,10 +2161,12 @@
       if (dream.media) {
         if (dream.mediaType === 'video') {
           const v = document.createElement('video');
-          v.src = dream.media;
           v.controls = true;
           v.className = 'dream-media';
           content.appendChild(v);
+          idbGet(dream.media).then((blob) => {
+            if (blob) v.src = URL.createObjectURL(blob);
+          });
         } else {
           const img = document.createElement('img');
           img.src = dream.media;
@@ -2151,7 +2236,7 @@
     }
   }
 
-  function collectAndSaveDream() {
+  async function collectAndSaveDream() {
     if (currentDreamKind === 'text') {
       const title = dreamTextTitle.value.trim();
       const body = dreamTextBody.value.trim();
@@ -2167,12 +2252,18 @@
         dreamPhotoSelect.focus();
         return;
       }
+      let media = currentDreamMedia;
+      if (currentDreamMediaType === 'video' && currentDreamMediaFile) {
+        const key = 'dream:' + uid();
+        await idbPut(key, currentDreamMediaFile).catch(() => {});
+        media = key;
+      }
       dreams.unshift({
         id: uid(),
         kind: 'photo',
         topText: top,
         bottomText: bottom,
-        media: currentDreamMedia,
+        media: media,
         mediaType: currentDreamMediaType,
         createdAt: Date.now(),
       });
@@ -2227,11 +2318,16 @@
     }
   }
 
-  function playMusic(index) {
+  async function playMusic(index) {
     if (!musicList.length) return;
     currentMusicIndex = index;
     ensureAudio();
-    musicAudio.src = musicList[index].src;
+    const item = musicList[index];
+    if (!item._url && item.key) {
+      const blob = await idbGet(item.key).catch(() => null);
+      if (blob) item._url = URL.createObjectURL(blob);
+    }
+    musicAudio.src = item._url || '';
     musicAudio.play().catch(() => {});
     updateMusicUI();
     renderMusicList();
@@ -2299,13 +2395,16 @@
     for (const file of files) {
       if (!file.type.startsWith('audio') && !file.type.startsWith('video')) continue;
       musicCounter++;
+      const key = 'music:' + uid();
       musicList.push({
         id: uid(),
         name: '🎵音乐' + musicCounter,
-        src: URL.createObjectURL(file),
+        key: key,
         type: file.type.startsWith('video') ? 'video' : 'audio',
       });
+      idbPut(key, file).catch(() => {});
     }
+    saveMusic();
     updateMusicUI();
     renderMusicList();
     if (musicList.length && currentMusicIndex < 0) playMusic(0);
@@ -2449,6 +2548,55 @@
   }
   function saveReminders() {
     try { localStorage.setItem('tt-workbench.reminders', JSON.stringify(reminders)); } catch (e) {}
+  }
+
+  // ---- IndexedDB 文件持久化（音乐/视频） ----
+  let _idb = null;
+  function idbOpen() {
+    if (_idb) return Promise.resolve(_idb);
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('tt-workbench', 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains('files')) req.result.createObjectStore('files');
+      };
+      req.onsuccess = () => { _idb = req.result; resolve(_idb); };
+      req.onerror = () => reject(req.error);
+    });
+  }
+  function idbPut(key, blob) {
+    return idbOpen().then((db) => new Promise((resolve, reject) => {
+      const tx = db.transaction('files', 'readwrite');
+      tx.objectStore('files').put(blob, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  function idbGet(key) {
+    return idbOpen().then((db) => new Promise((resolve) => {
+      const tx = db.transaction('files', 'readonly');
+      const req = tx.objectStore('files').get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    }));
+  }
+  function idbDelete(key) {
+    return idbOpen().then((db) => new Promise((resolve) => {
+      const tx = db.transaction('files', 'readwrite');
+      tx.objectStore('files').delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    }));
+  }
+  function loadMusic() {
+    try {
+      const data = JSON.parse(localStorage.getItem(MUSIC_STORAGE_KEY) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch (e) { return []; }
+  }
+  function saveMusic() {
+    try {
+      localStorage.setItem(MUSIC_STORAGE_KEY, JSON.stringify(musicList.map((m) => ({ id: m.id, name: m.name, key: m.key, type: m.type }))));
+    } catch (e) {}
   }
 
   // ---- 大日历 ----
@@ -3003,6 +3151,7 @@
     if (!file) return;
     currentDreamMediaType = file.type.startsWith('video') ? 'video' : 'image';
     if (currentDreamMediaType === 'image') {
+      currentDreamMediaFile = null;
       const reader = new FileReader();
       reader.onload = () => {
         currentDreamMedia = reader.result;
@@ -3010,6 +3159,7 @@
       };
       reader.readAsDataURL(file);
     } else {
+      currentDreamMediaFile = file;
       currentDreamMedia = URL.createObjectURL(file);
       renderDreamPreview();
     }

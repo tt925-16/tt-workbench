@@ -910,6 +910,12 @@ main {
   font-weight: 600;
 }
 
+.memo-cat-swipe {
+  box-shadow: none;
+  border-radius: 0;
+  animation: none;
+}
+
 .memo-cat-add {
   padding: 10px 12px;
   font-size: 14px;
