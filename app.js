@@ -2164,7 +2164,7 @@
           v.controls = true;
           v.className = 'dream-media';
           content.appendChild(v);
-          idbGet(dream.media).then((blob) => {
+          mediaGet(dream.media).then((blob) => {
             if (blob) v.src = URL.createObjectURL(blob);
           });
         } else {
@@ -2255,7 +2255,7 @@
       let media = currentDreamMedia;
       if (currentDreamMediaType === 'video' && currentDreamMediaFile) {
         const key = 'dream:' + uid();
-        await idbPut(key, currentDreamMediaFile).catch(() => {});
+        await mediaPut(key, currentDreamMediaFile).catch(() => {});
         media = key;
       }
       dreams.unshift({
@@ -2327,11 +2327,15 @@
       if (item._file) {
         item._url = URL.createObjectURL(item._file);
       } else if (item.key) {
-        const blob = await idbGet(item.key).catch(() => null);
+        const blob = await mediaGet(item.key).catch(() => null);
         if (blob) item._url = URL.createObjectURL(blob);
       }
     }
-    musicAudio.src = item._url || '';
+    if (!item._url) {
+      alert('音乐文件丢失，请删除后重新上传');
+      return;
+    }
+    musicAudio.src = item._url;
     musicAudio.play().catch(() => {});
     updateMusicUI();
     renderMusicList();
@@ -2408,7 +2412,7 @@
         type: file.type.startsWith('video') ? 'video' : 'audio',
         _file: file,
       });
-      puts.push(idbPut(key, file));
+      puts.push(mediaPut(key, file));
     }
     saveMusic();
     updateMusicUI();
@@ -2557,42 +2561,21 @@
     try { localStorage.setItem('tt-workbench.reminders', JSON.stringify(reminders)); } catch (e) {}
   }
 
-  // ---- IndexedDB 文件持久化（音乐/视频） ----
-  let _idb = null;
-  function idbOpen() {
-    if (_idb) return Promise.resolve(_idb);
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open('tt-workbench', 1);
-      req.onupgradeneeded = () => {
-        if (!req.result.objectStoreNames.contains('files')) req.result.createObjectStore('files');
-      };
-      req.onsuccess = () => { _idb = req.result; resolve(_idb); };
-      req.onerror = () => reject(req.error);
-    });
+  // ---- 文件持久化（Cache Storage，iOS 上比 IndexedDB 更可靠） ----
+  function mediaPut(key, blob) {
+    return caches.open('tt-media').then((cache) =>
+      cache.put('https://tt-media.local/' + key, new Response(blob, { headers: { 'Content-Type': blob.type || 'application/octet-stream' } }))
+    );
   }
-  function idbPut(key, blob) {
-    return idbOpen().then((db) => new Promise((resolve, reject) => {
-      const tx = db.transaction('files', 'readwrite');
-      tx.objectStore('files').put(blob, key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    }));
+  function mediaGet(key) {
+    return caches.open('tt-media').then((cache) =>
+      cache.match('https://tt-media.local/' + key).then((resp) => (resp ? resp.blob() : null))
+    );
   }
-  function idbGet(key) {
-    return idbOpen().then((db) => new Promise((resolve) => {
-      const tx = db.transaction('files', 'readonly');
-      const req = tx.objectStore('files').get(key);
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => resolve(null);
-    }));
-  }
-  function idbDelete(key) {
-    return idbOpen().then((db) => new Promise((resolve) => {
-      const tx = db.transaction('files', 'readwrite');
-      tx.objectStore('files').delete(key);
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    }));
+  function mediaDelete(key) {
+    return caches.open('tt-media').then((cache) =>
+      cache.delete('https://tt-media.local/' + key)
+    );
   }
   function loadMusic() {
     try {
