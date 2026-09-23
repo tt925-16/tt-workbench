@@ -2893,24 +2893,28 @@
   // ---- 页面切换 ----
   function switchPage(page) {
     currentPage = page;
-    const isHabit = page.startsWith('habit');
-    document.body.classList.toggle('in-habit', isHabit);
+    const mod = page.startsWith('habit') ? 'habit' : (page.startsWith('material') ? 'material' : 'daily');
+    document.body.classList.toggle('in-habit', mod === 'habit');
+    document.body.classList.toggle('in-material', mod === 'material');
     pages.forEach((p) => {
       p.hidden = p.id !== 'page-' + page;
     });
-    if (navDaily) navDaily.hidden = isHabit;
-    if (navHabit) navHabit.hidden = !isHabit;
+    if (navDaily) navDaily.hidden = mod !== 'daily';
+    if (navHabit) navHabit.hidden = mod !== 'habit';
     tabs.forEach((t) => {
       const active = t.dataset.page === page;
       t.classList.toggle('active', active);
       t.setAttribute('aria-selected', String(active));
     });
     sidebarItems.forEach((s) => {
-      s.classList.toggle('active', s.dataset.module === (isHabit ? 'habit' : 'daily'));
+      s.classList.toggle('active', s.dataset.module === mod);
     });
     closeSidebar();
     if (page === 'habit-stats') {
       requestAnimationFrame(() => renderStatsChart());
+    }
+    if (page === 'material') {
+      renderMaterial();
     }
   }
 
@@ -3759,7 +3763,9 @@
   hamburgerBtn.addEventListener('click', () => { if (sidebar.hidden) openSidebar(); else closeSidebar(); });
   sidebarOverlay.addEventListener('click', closeSidebar);
   sidebarItems.forEach((s) => {
-    s.addEventListener('click', () => switchPage(s.dataset.module === 'habit' ? 'habit-daily' : 'today'));
+    const m = s.dataset.module;
+    const p = m === 'habit' ? 'habit-daily' : (m === 'material' ? 'material' : 'today');
+    s.addEventListener('click', () => switchPage(p));
   });
   btnAddHabit.addEventListener('click', () => openHabitEditor(null));
   habitEditorCancel.addEventListener('click', closeHabitEditor);
@@ -3786,6 +3792,415 @@
   wishEditorSave.addEventListener('click', saveWish);
   wishEditorOverlay.addEventListener('click', (e) => { if (e.target === wishEditorOverlay) closeWishEditor(); });
 
+  // ================= 素材数据库模块 =================
+  const MATERIAL_REF_KEY = 'tt-workbench.materialRefs';
+  const MATERIAL_WORK_KEY = 'tt-workbench.materialWorks';
+  const MATERIAL_PLATFORMS = ['抖音', '小红书', '其他'];
+
+  const materialCount = document.getElementById('material-count');
+  const materialSegBtns = Array.from(document.querySelectorAll('.material-seg .seg-btn'));
+  const materialRefView = document.getElementById('material-ref-view');
+  const materialWorkView = document.getElementById('material-work-view');
+  const materialRefList = document.getElementById('material-ref-list');
+  const materialRefEmpty = document.getElementById('material-ref-empty');
+  const materialWorkList = document.getElementById('material-work-list');
+  const materialWorkEmpty = document.getElementById('material-work-empty');
+  const materialSearch = document.getElementById('material-search');
+  const btnAddMaterial = document.getElementById('btn-add-material');
+
+  const materialRefEditor = document.getElementById('material-ref-editor');
+  const materialRefCancel = document.getElementById('material-ref-cancel');
+  const materialRefSave = document.getElementById('material-ref-save');
+  const materialRefPlatform = document.getElementById('material-ref-platform');
+  const materialRefTitle = document.getElementById('material-ref-title');
+  const materialRefCategory = document.getElementById('material-ref-category');
+  const materialRefLink = document.getElementById('material-ref-link');
+  const materialRefScript = document.getElementById('material-ref-script');
+  const materialRefNotes = document.getElementById('material-ref-notes');
+
+  const materialWorkEditor = document.getElementById('material-work-editor');
+  const materialWorkCancel = document.getElementById('material-work-cancel');
+  const materialWorkSave = document.getElementById('material-work-save');
+  const materialWorkTitle = document.getElementById('material-work-title');
+  const materialWorkCategory = document.getElementById('material-work-category');
+  const materialWorkLink = document.getElementById('material-work-link');
+  const materialWorkScript = document.getElementById('material-work-script');
+
+  const materialRecordEditor = document.getElementById('material-record-editor');
+  const materialRecordCancel = document.getElementById('material-record-cancel');
+  const materialRecordSave = document.getElementById('material-record-save');
+  const materialRecordDate = document.getElementById('material-record-date');
+  const materialRecordViews = document.getElementById('material-record-views');
+  const materialRecordLikes = document.getElementById('material-record-likes');
+  const materialRecordSaves = document.getElementById('material-record-saves');
+  const materialRecordOrders = document.getElementById('material-record-orders');
+  const materialRecordAmount = document.getElementById('material-record-amount');
+
+  let materialRefs = loadMaterialRefs();
+  let materialWorks = loadMaterialWorks();
+  let materialSeg = 'ref';
+  let editingRefId = null;
+  let editingWorkId = null;
+  let recordWorkId = null;
+  let materialPlatform = '抖音';
+
+  function loadMaterialRefs() { try { const d = JSON.parse(localStorage.getItem(MATERIAL_REF_KEY) || '[]'); return Array.isArray(d) ? d : []; } catch (e) { return []; } }
+  function saveMaterialRefs() { try { localStorage.setItem(MATERIAL_REF_KEY, JSON.stringify(materialRefs)); } catch (e) {} }
+  function loadMaterialWorks() { try { const d = JSON.parse(localStorage.getItem(MATERIAL_WORK_KEY) || '[]'); return Array.isArray(d) ? d : []; } catch (e) { return []; } }
+  function saveMaterialWorks() { try { localStorage.setItem(MATERIAL_WORK_KEY, JSON.stringify(materialWorks)); } catch (e) {} }
+
+  function fmtMD(ts) { const d = new Date(ts); return (d.getMonth() + 1) + '月' + d.getDate() + '日'; }
+
+  function renderMaterial() {
+    const kw = (materialSearch.value || '').trim().toLowerCase();
+    if (materialSeg === 'ref') {
+      materialRefView.hidden = false;
+      materialWorkView.hidden = true;
+      renderMaterialRefs(kw);
+    } else {
+      materialRefView.hidden = true;
+      materialWorkView.hidden = false;
+      renderMaterialWorks(kw);
+    }
+    materialCount.textContent = materialRefs.length + ' 参考 · ' + materialWorks.length + ' 作品';
+  }
+
+  function renderMaterialRefs(kw) {
+    materialRefList.innerHTML = '';
+    const list = materialRefs.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .filter((r) => !kw || (r.title || '').toLowerCase().includes(kw) || (r.category || '').toLowerCase().includes(kw));
+    materialRefEmpty.hidden = list.length > 0;
+    list.forEach((r) => materialRefList.appendChild(buildRefItem(r)));
+  }
+
+  function buildRefItem(r) {
+    const item = document.createElement('div');
+    item.className = 'material-item';
+    item.dataset.id = r.id;
+
+    const time = document.createElement('div');
+    time.className = 'material-time';
+    time.textContent = fmtMD(r.createdAt);
+
+    const card = document.createElement('div');
+    card.className = 'material-card';
+
+    const head = document.createElement('div');
+    head.className = 'material-card-head';
+    const title = document.createElement('div');
+    title.className = 'material-card-title';
+    title.textContent = r.title || '(无标题)';
+    const badge = document.createElement('button');
+    badge.type = 'button';
+    badge.className = 'material-status ' + (r.referenced ? 'done' : 'todo');
+    badge.textContent = r.referenced ? '已参考' : '未参考';
+    badge.addEventListener('click', (e) => { e.stopPropagation(); r.referenced = !r.referenced; saveMaterialRefs(); renderMaterial(); });
+    head.appendChild(title);
+    head.appendChild(badge);
+
+    const meta = document.createElement('div');
+    meta.className = 'material-card-meta';
+    meta.textContent = [r.platform, r.category].filter(Boolean).join(' · ');
+
+    card.appendChild(head);
+    card.appendChild(meta);
+    item.appendChild(time);
+    item.appendChild(card);
+    item.addEventListener('click', () => openRefEditor(r));
+    return item;
+  }
+
+  function renderMaterialWorks(kw) {
+    materialWorkList.innerHTML = '';
+    const list = materialWorks.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .filter((w) => !kw || (w.title || '').toLowerCase().includes(kw) || (w.category || '').toLowerCase().includes(kw));
+    materialWorkEmpty.hidden = list.length > 0;
+    list.forEach((w) => materialWorkList.appendChild(buildWorkItem(w)));
+  }
+
+  function workTotals(w) {
+    const recs = Object.values(w.records || {});
+    const sum = (k) => recs.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+    const views = sum('views');
+    const orders = sum('orders');
+    return { views: views, orders: orders, amount: sum('amount'), conv: views > 0 ? (orders / views * 100) : 0, days: recs.length };
+  }
+
+  function buildWorkItem(w) {
+    const item = document.createElement('div');
+    item.className = 'material-item';
+    item.dataset.id = w.id;
+
+    const time = document.createElement('div');
+    time.className = 'material-time';
+    time.textContent = fmtMD(w.createdAt);
+
+    const card = document.createElement('div');
+    card.className = 'material-card';
+
+    const head = document.createElement('div');
+    head.className = 'material-card-head';
+    const title = document.createElement('div');
+    title.className = 'material-card-title';
+    title.textContent = w.title || '(无标题)';
+    head.appendChild(title);
+
+    const t = workTotals(w);
+    const summary = document.createElement('div');
+    summary.className = 'material-work-summary';
+    summary.textContent = '播放 ' + t.views + ' · 出单 ' + t.orders + ' · 转化 ' + t.conv.toFixed(1) + '%';
+    head.appendChild(summary);
+
+    const body = document.createElement('div');
+    body.className = 'material-work-body';
+    body.hidden = true;
+
+    card.appendChild(head);
+    card.appendChild(body);
+    item.appendChild(time);
+    item.appendChild(card);
+
+    head.addEventListener('click', () => {
+      body.hidden = !body.hidden;
+      if (!body.hidden) renderWorkDetail(body, w);
+    });
+    return item;
+  }
+
+  function renderWorkDetail(body, w) {
+    body.innerHTML = '';
+    const toolbar = document.createElement('div');
+    toolbar.className = 'material-work-toolbar';
+    const recordBtn = document.createElement('button');
+    recordBtn.type = 'button';
+    recordBtn.className = 'material-btn';
+    recordBtn.textContent = '＋ 记今天数据';
+    recordBtn.addEventListener('click', () => openRecordEditor(w));
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'material-btn material-btn-ghost';
+    editBtn.textContent = '编辑';
+    editBtn.addEventListener('click', () => openWorkEditor(w));
+    toolbar.appendChild(recordBtn);
+    toolbar.appendChild(editBtn);
+    body.appendChild(toolbar);
+
+    const dates = Object.keys(w.records || {}).sort();
+    if (dates.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'material-work-nodata';
+      empty.textContent = '还没有数据，点「记今天数据」开始记录';
+      body.appendChild(empty);
+      return;
+    }
+    const chartWrap = document.createElement('div');
+    chartWrap.className = 'material-chart';
+    const canvas = document.createElement('canvas');
+    chartWrap.appendChild(canvas);
+    body.appendChild(chartWrap);
+
+    const table = document.createElement('div');
+    table.className = 'material-records';
+    dates.forEach((ds) => {
+      const r = w.records[ds];
+      const views = Number(r.views) || 0;
+      const orders = Number(r.orders) || 0;
+      const conv = views > 0 ? (orders / views * 100).toFixed(1) : '0.0';
+      const row = document.createElement('div');
+      row.className = 'material-record-row';
+      row.innerHTML = '<span class="mr-date">' + ds.slice(5) + '</span>'
+        + '<span class="mr-num">播放 ' + views + '</span>'
+        + '<span class="mr-num">出单 ' + orders + '</span>'
+        + '<span class="mr-num">转化 ' + conv + '%</span>'
+        + '<span class="mr-num">金额 ¥' + (Number(r.amount) || 0) + '</span>';
+      table.appendChild(row);
+    });
+    body.appendChild(table);
+
+    requestAnimationFrame(() => drawWorkChart(canvas, w, dates));
+  }
+
+  function drawWorkChart(canvas, w, dates) {
+    const wrap = canvas.parentElement;
+    const width = wrap.clientWidth || 300;
+    const height = 140;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const views = dates.map((ds) => Number(w.records[ds].views) || 0);
+    const orders = dates.map((ds) => Number(w.records[ds].orders) || 0);
+    const maxV = Math.max(1, ...views);
+    const maxO = Math.max(1, ...orders);
+
+    const padL = 6, padR = 6, padT = 8, padB = 16;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+    const xAt = (i) => padL + (dates.length === 1 ? plotW / 2 : (i / (dates.length - 1)) * plotW);
+    const yV = (v) => padT + plotH - (v / maxV) * plotH;
+    const yO = (v) => padT + plotH - (v / maxO) * plotH;
+
+    ctx.clearRect(0, 0, width, height);
+    // 播放量线（暖橙）
+    drawLine(ctx, views, xAt, yV, '#d9a06b');
+    // 出单量线（深灰）
+    drawLine(ctx, orders, xAt, yO, '#5b5b5b');
+
+    ctx.fillStyle = '#9a9a9a';
+    ctx.font = '9px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('— 播放量', padL, height - 4);
+    ctx.fillStyle = '#5b5b5b';
+    ctx.fillText('— 出单量', padL + 60, height - 4);
+  }
+  function drawLine(ctx, data, xAt, yAt, color) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    data.forEach((v, i) => {
+      const x = xAt(i), y = yAt(v);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  // ---- 参考爆款编辑器 ----
+  function renderRefPlatform() {
+    materialRefPlatform.innerHTML = '';
+    MATERIAL_PLATFORMS.forEach((p) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'material-chip' + (p === materialPlatform ? ' active' : '');
+      b.textContent = p;
+      b.addEventListener('click', () => { materialPlatform = p; renderRefPlatform(); });
+      materialRefPlatform.appendChild(b);
+    });
+  }
+  function openRefEditor(r) {
+    editingRefId = r ? r.id : null;
+    materialPlatform = r ? (r.platform || '抖音') : '抖音';
+    materialRefTitle.value = r ? (r.title || '') : '';
+    materialRefCategory.value = r ? (r.category || '') : '';
+    materialRefLink.value = r ? (r.link || '') : '';
+    materialRefScript.value = r ? (r.script || '') : '';
+    materialRefNotes.value = r ? (r.notes || '') : '';
+    renderRefPlatform();
+    materialRefEditor.hidden = false;
+    requestAnimationFrame(() => materialRefTitle.focus());
+  }
+  function closeRefEditor() { materialRefEditor.hidden = true; }
+  function saveRef() {
+    const title = materialRefTitle.value.trim();
+    if (!title) { materialRefTitle.focus(); return; }
+    const data = {
+      title: title,
+      platform: materialPlatform,
+      category: materialRefCategory.value.trim(),
+      link: materialRefLink.value.trim(),
+      script: materialRefScript.value.trim(),
+      notes: materialRefNotes.value.trim(),
+    };
+    if (editingRefId) {
+      const idx = materialRefs.findIndex((x) => x.id === editingRefId);
+      if (idx >= 0) materialRefs[idx] = Object.assign({}, materialRefs[idx], data);
+    } else {
+      materialRefs.push(Object.assign({ id: uid(), referenced: false, createdAt: Date.now() }, data));
+    }
+    saveMaterialRefs();
+    closeRefEditor();
+    renderMaterial();
+    editingRefId = null;
+  }
+
+  // ---- 我的作品编辑器 ----
+  function openWorkEditor(w) {
+    editingWorkId = w ? w.id : null;
+    materialWorkTitle.value = w ? (w.title || '') : '';
+    materialWorkCategory.value = w ? (w.category || '') : '';
+    materialWorkLink.value = w ? (w.link || '') : '';
+    materialWorkScript.value = w ? (w.script || '') : '';
+    materialWorkEditor.hidden = false;
+    requestAnimationFrame(() => materialWorkTitle.focus());
+  }
+  function closeWorkEditor() { materialWorkEditor.hidden = true; }
+  function saveWork() {
+    const title = materialWorkTitle.value.trim();
+    if (!title) { materialWorkTitle.focus(); return; }
+    const data = {
+      title: title,
+      category: materialWorkCategory.value.trim(),
+      link: materialWorkLink.value.trim(),
+      script: materialWorkScript.value.trim(),
+    };
+    if (editingWorkId) {
+      const idx = materialWorks.findIndex((x) => x.id === editingWorkId);
+      if (idx >= 0) materialWorks[idx] = Object.assign({}, materialWorks[idx], data);
+    } else {
+      materialWorks.push(Object.assign({ id: uid(), records: {}, createdAt: Date.now() }, data));
+    }
+    saveMaterialWorks();
+    closeWorkEditor();
+    renderMaterial();
+    editingWorkId = null;
+  }
+
+  // ---- 数据记录编辑器 ----
+  function openRecordEditor(w) {
+    recordWorkId = w.id;
+    materialRecordDate.value = todayStr();
+    materialRecordViews.value = '';
+    materialRecordLikes.value = '';
+    materialRecordSaves.value = '';
+    materialRecordOrders.value = '';
+    materialRecordAmount.value = '';
+    materialRecordEditor.hidden = false;
+  }
+  function closeRecordEditor() { materialRecordEditor.hidden = true; }
+  function saveRecord() {
+    const w = materialWorks.find((x) => x.id === recordWorkId);
+    if (!w) { closeRecordEditor(); return; }
+    const ds = materialRecordDate.value || todayStr();
+    if (!w.records) w.records = {};
+    w.records[ds] = {
+      views: Number(materialRecordViews.value) || 0,
+      likes: Number(materialRecordLikes.value) || 0,
+      saves: Number(materialRecordSaves.value) || 0,
+      orders: Number(materialRecordOrders.value) || 0,
+      amount: Number(materialRecordAmount.value) || 0,
+    };
+    saveMaterialWorks();
+    closeRecordEditor();
+    renderMaterial();
+  }
+
+  // ---- 事件绑定 ----
+  materialSegBtns.forEach((b) => {
+    b.addEventListener('click', () => {
+      materialSeg = b.dataset.mseg;
+      materialSegBtns.forEach((x) => x.classList.toggle('active', x === b));
+      renderMaterial();
+    });
+  });
+  materialSearch.addEventListener('input', renderMaterial);
+  btnAddMaterial.addEventListener('click', () => {
+    if (materialSeg === 'ref') openRefEditor(null);
+    else openWorkEditor(null);
+  });
+  materialRefCancel.addEventListener('click', closeRefEditor);
+  materialRefSave.addEventListener('click', saveRef);
+  materialRefEditor.addEventListener('click', (e) => { if (e.target === materialRefEditor) closeRefEditor(); });
+  materialWorkCancel.addEventListener('click', closeWorkEditor);
+  materialWorkSave.addEventListener('click', saveWork);
+  materialWorkEditor.addEventListener('click', (e) => { if (e.target === materialWorkEditor) closeWorkEditor(); });
+  materialRecordCancel.addEventListener('click', closeRecordEditor);
+  materialRecordSave.addEventListener('click', saveRecord);
+  materialRecordEditor.addEventListener('click', (e) => { if (e.target === materialRecordEditor) closeRecordEditor(); });
+
   // ---- 初始化 ----
   todaySignature.textContent = localStorage.getItem(SIGNATURE_KEY) || '';
   updateWeatherMoodUI();
@@ -3798,6 +4213,7 @@
   renderHabits();
   updatePointsUI();
   renderWishes();
+  renderMaterial();
   // 首次任意交互解锁音频，保证提醒声音能响
   const unlockAudio = () => {
     try {

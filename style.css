@@ -3036,3 +3036,239 @@ body.in-habit #nav-habit .tab.active {
   background: #ffe3c2;
   border-radius: 999px;
 }
+
+/* ================= 素材数据库模块：ins 韩系 ================= */
+body.in-material {
+  background-color: #faf9f7;
+}
+.module-material {
+  background: transparent;
+}
+.material-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 4px 2px 12px;
+}
+.material-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2a2a2a;
+  letter-spacing: -0.3px;
+}
+.material-count {
+  font-size: 12px;
+  color: #b0b0b0;
+}
+.material-seg {
+  margin-bottom: 12px;
+}
+.material-searchbar {
+  margin-bottom: 12px;
+}
+.material-search {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 12px;
+  background: #f0ede8;
+  color: #2a2a2a;
+  font-size: 14px;
+  outline: none;
+}
+.material-search::placeholder {
+  color: #b5b5b5;
+}
+
+.material-list {
+  padding-bottom: 90px;
+}
+.material-item {
+  display: flex;
+  gap: 12px;
+}
+.material-time {
+  width: 42px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #c0c0c0;
+  padding-top: 16px;
+  text-align: right;
+}
+.material-card {
+  flex: 1;
+  background: #fff;
+  border-radius: 14px;
+  padding: 13px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.material-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.material-card-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2a2a2a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.material-card-meta {
+  margin-top: 5px;
+  font-size: 12px;
+  color: #b0b0b0;
+}
+.material-status {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+.material-status.todo {
+  background: #f0ede8;
+  color: #9a8b7a;
+}
+.material-status.done {
+  background: #e3ebe0;
+  color: #6b8068;
+}
+
+.material-work-summary {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9a9a9a;
+}
+.material-work-body {
+  margin-top: 10px;
+  border-top: 1px solid #f0ede8;
+  padding-top: 10px;
+}
+.material-work-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.material-btn {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: none;
+  background: #2a2a2a;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+.material-btn-ghost {
+  background: #f0ede8;
+  color: #2a2a2a;
+}
+.material-work-nodata {
+  font-size: 12px;
+  color: #b5b5b5;
+  padding: 8px 0;
+}
+.material-chart {
+  background: #faf9f7;
+  border-radius: 10px;
+  padding: 6px;
+  margin-bottom: 8px;
+}
+.material-chart canvas {
+  display: block;
+}
+.material-records {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.material-record-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 12px;
+  color: #6a6a6a;
+  background: #faf9f7;
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+.mr-date {
+  font-weight: 600;
+  color: #2a2a2a;
+}
+.mr-num {
+  color: #9a9a9a;
+}
+
+/* 素材编辑器（ins 韩系中性色） */
+.material-editor .editor-sheet {
+  background: #faf9f7;
+}
+.material-editor .editor-header {
+  border-bottom-color: #ece9e4;
+}
+.material-editor .editor-title-label {
+  color: #2a2a2a;
+}
+.material-editor .editor-cancel {
+  color: #9a9a9a;
+  border-color: #ece9e4;
+}
+.material-editor .editor-done {
+  color: #fff;
+  background: #b09b86;
+  border-color: #b09b86;
+}
+.material-editor .memo-title-input {
+  color: #2a2a2a;
+}
+.material-editor .memo-title-input::placeholder {
+  color: #c0c0c0;
+}
+.material-editor .date-input {
+  background: #fff;
+  color: #2a2a2a;
+  border-color: #ece9e4;
+}
+.material-editor .field-label {
+  color: #9a9a9a;
+}
+
+.material-platform {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.material-chip {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #ece9e4;
+  background: #fff;
+  color: #6a6a6a;
+  font-size: 13px;
+  cursor: pointer;
+}
+.material-chip.active {
+  background: #2a2a2a;
+  color: #fff;
+  border-color: #2a2a2a;
+}
+.material-textarea {
+  width: 100%;
+  min-height: 90px;
+  padding: 10px 12px;
+  border: 1px solid #ece9e4;
+  border-radius: 12px;
+  background: #fff;
+  color: #2a2a2a;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+}

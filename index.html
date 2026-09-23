@@ -32,6 +32,9 @@
     <button type="button" class="sidebar-item" data-module="habit">
       <span>习惯</span>
     </button>
+    <button type="button" class="sidebar-item" data-module="material">
+      <span>素材数据库</span>
+    </button>
   </aside>
 
   <main>
@@ -218,6 +221,34 @@
       <p class="empty-state" id="wish-empty" hidden>还没有心愿，点右下角 ➕ 添加</p>
       <div class="fab">
         <button class="btn-add" id="btn-add-wish" aria-label="添加心愿">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 素材数据库模块 -->
+    <section class="page module-material" id="page-material" hidden>
+      <header class="material-header">
+        <h1 class="material-title">素材数据库</h1>
+        <span class="material-count" id="material-count"></span>
+      </header>
+      <div class="segmented material-seg">
+        <button class="seg-btn active" data-mseg="ref">参考爆款</button>
+        <button class="seg-btn" data-mseg="work">我的作品</button>
+      </div>
+      <div class="material-searchbar">
+        <input type="text" id="material-search" class="material-search" placeholder="搜索标题 / 分类" autocomplete="off">
+      </div>
+      <div id="material-ref-view">
+        <div class="material-list" id="material-ref-list"></div>
+        <p class="empty-state" id="material-ref-empty" hidden>还没有收藏爆款，点右下角 ➕ 添加</p>
+      </div>
+      <div id="material-work-view" hidden>
+        <div class="material-list" id="material-work-list"></div>
+        <p class="empty-state" id="material-work-empty" hidden>还没有作品，点右下角 ➕ 添加</p>
+      </div>
+      <div class="fab">
+        <button class="btn-add" id="btn-add-material" aria-label="添加">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
@@ -627,6 +658,70 @@
         <input type="number" id="wish-cost-input" class="date-input" min="1" step="1" value="10">
         <label class="field-label">图标（可选 emoji）</label>
         <input type="text" id="wish-icon-input" class="date-input" placeholder="例如 🌟" maxlength="4">
+      </div>
+    </div>
+  </div>
+
+  <!-- 参考爆款编辑器 -->
+  <div class="editor-overlay material-editor" id="material-ref-editor" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="参考爆款">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="material-ref-cancel">取消</button>
+        <span class="editor-title-label">参考爆款</span>
+        <button type="button" class="editor-done" id="material-ref-save">保存</button>
+      </header>
+      <div class="editor-body">
+        <label class="field-label">平台</label>
+        <div class="material-platform" id="material-ref-platform"></div>
+        <input type="text" id="material-ref-title" class="memo-title-input" placeholder="标题" maxlength="60" autocomplete="off">
+        <input type="text" id="material-ref-category" class="date-input" placeholder="分类（如 美妆带货）" autocomplete="off">
+        <input type="text" id="material-ref-link" class="date-input" placeholder="视频链接（可选）" autocomplete="off">
+        <label class="field-label">文案 / 脚本</label>
+        <textarea id="material-ref-script" class="material-textarea" placeholder="粘贴视频文案或口播脚本"></textarea>
+        <label class="field-label">分析笔记</label>
+        <textarea id="material-ref-notes" class="material-textarea" placeholder="记录你的分析（可选）"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 我的作品编辑器 -->
+  <div class="editor-overlay material-editor" id="material-work-editor" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="我的作品">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="material-work-cancel">取消</button>
+        <span class="editor-title-label">我的作品</span>
+        <button type="button" class="editor-done" id="material-work-save">保存</button>
+      </header>
+      <div class="editor-body">
+        <input type="text" id="material-work-title" class="memo-title-input" placeholder="标题 / 脚本名" maxlength="60" autocomplete="off">
+        <input type="text" id="material-work-category" class="date-input" placeholder="分类（可选）" autocomplete="off">
+        <input type="text" id="material-work-link" class="date-input" placeholder="视频链接（可选）" autocomplete="off">
+        <label class="field-label">你的脚本</label>
+        <textarea id="material-work-script" class="material-textarea" placeholder="粘贴你的脚本"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据记录编辑器 -->
+  <div class="editor-overlay material-editor" id="material-record-editor" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="记录数据">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="material-record-cancel">取消</button>
+        <span class="editor-title-label">记录数据</span>
+        <button type="button" class="editor-done" id="material-record-save">保存</button>
+      </header>
+      <div class="editor-body">
+        <input type="date" id="material-record-date" class="date-input">
+        <label class="field-label">播放量</label>
+        <input type="number" id="material-record-views" class="date-input" min="0" step="1" placeholder="0">
+        <label class="field-label">点赞</label>
+        <input type="number" id="material-record-likes" class="date-input" min="0" step="1" placeholder="0">
+        <label class="field-label">收藏</label>
+        <input type="number" id="material-record-saves" class="date-input" min="0" step="1" placeholder="0">
+        <label class="field-label">出单量</label>
+        <input type="number" id="material-record-orders" class="date-input" min="0" step="1" placeholder="0">
+        <label class="field-label">出单金额（元）</label>
+        <input type="number" id="material-record-amount" class="date-input" min="0" step="0.01" placeholder="0">
       </div>
     </div>
   </div>
