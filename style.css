@@ -3081,7 +3081,7 @@ body.in-material {
 }
 
 .material-list {
-  padding-bottom: 90px;
+  padding-bottom: 150px;
 }
 .material-item {
   display: flex;
@@ -3278,9 +3278,10 @@ body.in-material {
   min-height: 240px;
 }
 
-/* 参考爆款/我的作品 切换往下一点 */
-.material-seg {
-  margin-top: 10px;
+/* 参考爆款/我的作品 切换：固定到屏幕最底部（➕下面） */
+body.in-material .material-seg {
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  margin: 0;
 }
 
 /* 素材库左滑删除 */
