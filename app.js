@@ -2894,6 +2894,7 @@
   function switchPage(page) {
     currentPage = page;
     const isHabit = page.startsWith('habit');
+    document.body.classList.toggle('in-habit', isHabit);
     pages.forEach((p) => {
       p.hidden = p.id !== 'page-' + page;
     });
@@ -3315,6 +3316,7 @@
   const statsChart = document.getElementById('stats-chart');
   const statsRange = document.getElementById('stats-range');
   const statsSummary = document.getElementById('stats-summary');
+  const statsLegend = document.getElementById('stats-legend');
 
   const pointsNum = document.getElementById('points-num');
   const wishList = document.getElementById('wish-list');
@@ -3353,6 +3355,17 @@
 
   function habitCount(h) { return (h.records || {})[todayStr()] || 0; }
   function setHabitCount(h, count) { if (!h.records) h.records = {}; h.records[todayStr()] = Math.max(0, count); }
+  function habitVisibleToday(h) {
+    if (h.freq === 'weekly') {
+      const wd = new Date().getDay() === 0 ? 7 : new Date().getDay();
+      return (h.weekdays || []).includes(wd);
+    }
+    if (h.freq === 'once') {
+      const total = Object.values(h.records || {}).reduce((a, b) => a + b, 0);
+      return total === 0;
+    }
+    return true;
+  }
 
   // ---- 侧栏 ----
   function openSidebar() { sidebarOverlay.hidden = false; sidebar.hidden = false; requestAnimationFrame(() => sidebar.classList.add('open')); }
@@ -3362,7 +3375,7 @@
   function renderHabits() {
     habitList.innerHTML = '';
     const grouped = {};
-    habits.forEach((h) => { const c = h.category || '日常'; (grouped[c] = grouped[c] || []).push(h); });
+    habits.filter(habitVisibleToday).forEach((h) => { const c = h.category || '日常'; (grouped[c] = grouped[c] || []).push(h); });
     const cats = Object.keys(grouped);
     habitEmpty.hidden = cats.length > 0;
     habitDateEl.textContent = (new Date().getMonth() + 1) + '月' + new Date().getDate() + '日';
@@ -3628,7 +3641,9 @@
     const padL = 30, padR = 10, padT = 10, padB = 24;
     const plotW = w - padL - padR;
     const plotH = h - padT - padB;
-    const maxV = Math.max(1, ...series.flatMap((s) => s.data));
+    const rawMax = Math.max(1, ...series.flatMap((s) => s.data));
+    const axisMax = rawMax > 4 ? Math.ceil(rawMax / 4) * 4 : 4;
+    const step = axisMax / 4;
 
     ctx.clearRect(0, 0, w, h);
     ctx.strokeStyle = 'rgba(0,0,0,0.06)';
@@ -3636,7 +3651,7 @@
     ctx.font = '10px sans-serif';
     for (let g = 0; g <= 4; g++) {
       const y = padT + plotH - (g / 4) * plotH;
-      const val = Math.round((g / 4) * maxV);
+      const val = Math.round(g * step);
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
@@ -3657,12 +3672,24 @@
       ctx.beginPath();
       s.data.forEach((v, i) => {
         const x = padL + (days === 1 ? plotW / 2 : (i / (days - 1)) * plotW);
-        const y = padT + plotH - (v / maxV) * plotH;
+        const y = padT + plotH - (v / axisMax) * plotH;
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       });
       ctx.stroke();
     });
+    renderStatsLegend(series);
     renderStatsSummary(series);
+  }
+  function renderStatsLegend(series) {
+    statsLegend.innerHTML = '';
+    series.forEach((s) => {
+      const chip = document.createElement('span');
+      chip.className = 'stats-legend-item';
+      const dot = document.createElement('span'); dot.className = 'stats-dot'; dot.style.background = s.color;
+      const nm = document.createElement('span'); nm.textContent = s.name;
+      chip.appendChild(dot); chip.appendChild(nm);
+      statsLegend.appendChild(chip);
+    });
   }
   function renderStatsSummary(series) {
     statsSummary.innerHTML = '';

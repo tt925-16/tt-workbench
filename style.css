@@ -2654,9 +2654,12 @@ main {
 }
 
 /* ================= 习惯模块：暖色治愈 ================= */
-.module-habit {
+body.in-habit {
   background-color: #fff7ec;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+}
+.module-habit {
+  background: transparent;
 }
 .habit-header {
   display: flex;
@@ -2841,6 +2844,20 @@ main {
   color: #fff;
   border-color: #f4a261;
 }
+.stats-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 2px 2px 10px;
+}
+.stats-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #7a5230;
+}
+
 .stats-chart-wrap {
   margin: 10px 0 8px;
   height: 220px;

@@ -27,10 +27,10 @@
   <aside class="sidebar" id="sidebar" hidden>
     <div class="sidebar-head">tt 的工作台</div>
     <button type="button" class="sidebar-item active" data-module="daily">
-      <span class="sidebar-emoji">🌞</span><span>日常</span>
+      <span>日常</span>
     </button>
     <button type="button" class="sidebar-item" data-module="habit">
-      <span class="sidebar-emoji">🌱</span><span>习惯</span>
+      <span>习惯</span>
     </button>
   </aside>
 
@@ -201,17 +201,18 @@
           <button type="button" data-range="year">一年</button>
         </div>
       </header>
+      <div class="stats-legend" id="stats-legend"></div>
       <div class="stats-chart-wrap"><canvas id="stats-chart"></canvas></div>
       <div class="stats-summary" id="stats-summary"></div>
     </section>
 
     <section class="page module-habit" id="page-habit-points" hidden>
       <header class="habit-header">
-        <h1 class="habit-title">积分</h1>
+        <h1 class="habit-title">全部积分</h1>
       </header>
       <div class="points-total">
         <span class="points-num" id="points-num">0</span>
-        <span class="points-label">积分</span>
+        <span class="points-label">你现在可使用的全部积分</span>
       </div>
       <div class="wish-list" id="wish-list"></div>
       <p class="empty-state" id="wish-empty" hidden>还没有心愿，点右下角 ➕ 添加</p>
