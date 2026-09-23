@@ -2959,3 +2959,65 @@ body.in-habit {
   font-size: 12px;
   color: #c98a5a;
 }
+
+/* ===== 习惯/心愿编辑器：暖色 ===== */
+.habit-editor {
+  background: #fff7ec;
+}
+.habit-editor .editor-sheet {
+  background: #fff7ec;
+}
+.habit-editor .editor-header {
+  border-bottom-color: #f0d3b0;
+}
+.habit-editor .editor-title-label {
+  color: #a9632b;
+}
+.habit-editor .editor-cancel {
+  color: #c98a5a;
+  border-color: #f0d3b0;
+}
+.habit-editor .editor-done {
+  color: #fff;
+  background: #f4a261;
+  border-color: #f4a261;
+}
+.habit-editor .memo-title-input {
+  color: #7a5230;
+}
+.habit-editor .memo-title-input::placeholder {
+  color: #d9a06b;
+}
+.habit-editor .date-input {
+  background: #fff;
+  color: #7a5230;
+  border-color: #f0d3b0;
+}
+.habit-editor .field-label {
+  color: #c98a5a;
+}
+
+/* ===== 习惯模块底部导航：灵动岛 ===== */
+body.in-habit #nav-habit {
+  background: transparent;
+  border-top: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body.in-habit #nav-habit .tabbar-inner {
+  margin: 0 40px calc(14px + env(safe-area-inset-bottom));
+  background: #1c1c1e;
+  border-radius: 999px;
+  padding: 5px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.32);
+}
+body.in-habit #nav-habit .tab {
+  padding: 8px 0;
+  color: #9a9aa0;
+  transition: color 0.15s, background 0.15s;
+}
+body.in-habit #nav-habit .tab.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
