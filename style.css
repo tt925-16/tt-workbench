@@ -2941,6 +2941,21 @@ body.in-habit {
   cursor: pointer;
   text-align: left;
 }
+
+.wish-swipe {
+  box-shadow: 0 3px 10px rgba(233, 164, 102, 0.14);
+  border-radius: 16px;
+  animation: none;
+  margin-bottom: 10px;
+}
+.wish-swipe .wish-item {
+  margin-bottom: 0;
+  box-shadow: none;
+}
+.wish-swipe .swipe-delete {
+  background: #e07a5f;
+  color: #fff;
+}
 .wish-icon {
   font-size: 26px;
 }

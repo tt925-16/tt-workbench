@@ -3334,6 +3334,7 @@
   let habitPoints = loadHabitPoints();
   let habitWishes = loadHabitWishes();
   let editingHabitId = null;
+  let editingWishId = null;
   let habitDraftIcon = '';
   let habitDraftCategory = '日常';
   let habitDraftFreq = 'daily';
@@ -3581,6 +3582,20 @@
     wishList.innerHTML = '';
     wishEmpty.hidden = habitWishes.length > 0;
     habitWishes.forEach((w) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'swipe-item wish-swipe';
+
+      const actions = document.createElement('div');
+      actions.className = 'swipe-actions';
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'swipe-btn swipe-delete';
+      delBtn.textContent = '删除';
+      delBtn.addEventListener('click', () => deleteWish(w));
+      actions.appendChild(delBtn);
+
+      const content = document.createElement('div');
+      content.className = 'swipe-content';
       const item = document.createElement('button');
       item.type = 'button';
       item.className = 'wish-item';
@@ -3591,7 +3606,19 @@
       body.appendChild(name); body.appendChild(cost);
       item.appendChild(icon); item.appendChild(body);
       item.addEventListener('click', () => completeWish(w));
-      wishList.appendChild(item);
+      content.appendChild(item);
+
+      wrap.appendChild(actions);
+      wrap.appendChild(content);
+      enableSwipe(wrap, content);
+
+      let pressTimer = null;
+      content.addEventListener('touchstart', () => { pressTimer = setTimeout(() => { clearTimeout(pressTimer); openWishEditor(w); }, 600); });
+      content.addEventListener('touchend', () => clearTimeout(pressTimer));
+      content.addEventListener('touchmove', () => clearTimeout(pressTimer));
+      content.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      wishList.appendChild(wrap);
     });
   }
   function completeWish(w) {
@@ -3601,15 +3628,34 @@
     saveHabitPoints();
     updatePointsUI();
   }
-  function openWishEditor() { wishNameInput.value = ''; wishCostInput.value = 10; wishIconInput.value = ''; wishEditorOverlay.hidden = false; requestAnimationFrame(() => wishNameInput.focus()); }
+  function openWishEditor(w) {
+    editingWishId = w ? w.id : null;
+    wishNameInput.value = w ? w.name : '';
+    wishCostInput.value = w ? w.cost : 10;
+    wishIconInput.value = w ? (w.icon || '') : '';
+    wishEditorOverlay.hidden = false;
+    requestAnimationFrame(() => wishNameInput.focus());
+  }
   function closeWishEditor() { wishEditorOverlay.hidden = true; }
   function saveWish() {
     const name = wishNameInput.value.trim();
     if (!name) { wishNameInput.focus(); return; }
     const cost = Math.max(1, Number(wishCostInput.value) || 1);
-    habitWishes.unshift({ id: uid(), name: name, cost: cost, icon: wishIconInput.value.trim() || '🌟' });
+    const icon = wishIconInput.value.trim() || '🌟';
+    if (editingWishId) {
+      const idx = habitWishes.findIndex((x) => x.id === editingWishId);
+      if (idx >= 0) { habitWishes[idx].name = name; habitWishes[idx].cost = cost; habitWishes[idx].icon = icon; }
+    } else {
+      habitWishes.unshift({ id: uid(), name: name, cost: cost, icon: icon });
+    }
     saveHabitWishes();
     closeWishEditor();
+    renderWishes();
+    editingWishId = null;
+  }
+  function deleteWish(w) {
+    habitWishes = habitWishes.filter((x) => x.id !== w.id);
+    saveHabitWishes();
     renderWishes();
   }
 
@@ -3735,7 +3781,7 @@
     statsRange.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
     renderStatsChart();
   });
-  btnAddWish.addEventListener('click', openWishEditor);
+  btnAddWish.addEventListener('click', () => openWishEditor(null));
   wishEditorCancel.addEventListener('click', closeWishEditor);
   wishEditorSave.addEventListener('click', saveWish);
   wishEditorOverlay.addEventListener('click', (e) => { if (e.target === wishEditorOverlay) closeWishEditor(); });
