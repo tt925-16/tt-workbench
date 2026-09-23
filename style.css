@@ -3273,12 +3273,30 @@ body.in-material {
   outline: none;
 }
 
-/* 素材库没有底部导航，fab 往下放 */
-body.in-material .fab {
-  bottom: calc(16px + env(safe-area-inset-bottom));
-}
-
 /* 分析笔记输入框加大，方便写很多 */
 #material-ref-notes {
   min-height: 240px;
+}
+
+/* 参考爆款/我的作品 切换往下一点 */
+.material-seg {
+  margin-top: 10px;
+}
+
+/* 素材库左滑删除 */
+.material-swipe {
+  flex: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  animation: none;
+  margin-bottom: 10px;
+}
+.material-swipe .material-card {
+  margin-bottom: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+.material-swipe .swipe-delete {
+  background: #d97a6a;
+  color: #fff;
 }

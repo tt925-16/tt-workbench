@@ -3876,11 +3876,26 @@
   function buildRefItem(r) {
     const item = document.createElement('div');
     item.className = 'material-item';
-    item.dataset.id = r.id;
 
     const time = document.createElement('div');
     time.className = 'material-time';
     time.textContent = fmtMD(r.createdAt);
+    item.appendChild(time);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'swipe-item material-swipe';
+
+    const actions = document.createElement('div');
+    actions.className = 'swipe-actions';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'swipe-btn swipe-delete';
+    delBtn.textContent = '删除';
+    delBtn.addEventListener('click', () => deleteRef(r));
+    actions.appendChild(delBtn);
+
+    const content = document.createElement('div');
+    content.className = 'swipe-content';
 
     const card = document.createElement('div');
     card.className = 'material-card';
@@ -3904,9 +3919,20 @@
 
     card.appendChild(head);
     card.appendChild(meta);
-    item.appendChild(time);
-    item.appendChild(card);
-    item.addEventListener('click', () => openRefEditor(r));
+    content.appendChild(card);
+
+    wrap.appendChild(actions);
+    wrap.appendChild(content);
+    enableSwipe(wrap, content);
+    item.appendChild(wrap);
+
+    card.addEventListener('click', () => openRefEditor(r));
+    let pressTimer = null;
+    content.addEventListener('touchstart', () => { pressTimer = setTimeout(() => { clearTimeout(pressTimer); openRefEditor(r); }, 600); });
+    content.addEventListener('touchend', () => clearTimeout(pressTimer));
+    content.addEventListener('touchmove', () => clearTimeout(pressTimer));
+    content.addEventListener('contextmenu', (e) => e.preventDefault());
+
     return item;
   }
 
@@ -3929,11 +3955,26 @@
   function buildWorkItem(w) {
     const item = document.createElement('div');
     item.className = 'material-item';
-    item.dataset.id = w.id;
 
     const time = document.createElement('div');
     time.className = 'material-time';
     time.textContent = fmtMD(w.createdAt);
+    item.appendChild(time);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'swipe-item material-swipe';
+
+    const actions = document.createElement('div');
+    actions.className = 'swipe-actions';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'swipe-btn swipe-delete';
+    delBtn.textContent = '删除';
+    delBtn.addEventListener('click', () => deleteWork(w));
+    actions.appendChild(delBtn);
+
+    const content = document.createElement('div');
+    content.className = 'swipe-content';
 
     const card = document.createElement('div');
     card.className = 'material-card';
@@ -3957,13 +3998,26 @@
 
     card.appendChild(head);
     card.appendChild(body);
-    item.appendChild(time);
-    item.appendChild(card);
+    content.appendChild(card);
+
+    wrap.appendChild(actions);
+    wrap.appendChild(content);
+    enableSwipe(wrap, content);
+    item.appendChild(wrap);
+
+    let pressTimer = null;
+    let longPressed = false;
+    content.addEventListener('touchstart', () => { longPressed = false; pressTimer = setTimeout(() => { longPressed = true; clearTimeout(pressTimer); openWorkEditor(w); }, 600); });
+    content.addEventListener('touchend', () => clearTimeout(pressTimer));
+    content.addEventListener('touchmove', () => clearTimeout(pressTimer));
+    content.addEventListener('contextmenu', (e) => e.preventDefault());
 
     head.addEventListener('click', () => {
+      if (longPressed) { longPressed = false; return; }
       body.hidden = !body.hidden;
       if (!body.hidden) renderWorkDetail(body, w);
     });
+
     return item;
   }
 
@@ -4147,6 +4201,16 @@
     closeWorkEditor();
     renderMaterial();
     editingWorkId = null;
+  }
+  function deleteRef(r) {
+    materialRefs = materialRefs.filter((x) => x.id !== r.id);
+    saveMaterialRefs();
+    renderMaterial();
+  }
+  function deleteWork(w) {
+    materialWorks = materialWorks.filter((x) => x.id !== w.id);
+    saveMaterialWorks();
+    renderMaterial();
   }
 
   // ---- 数据记录编辑器 ----
