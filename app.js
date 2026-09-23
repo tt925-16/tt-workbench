@@ -2893,14 +2893,24 @@
   // ---- 页面切换 ----
   function switchPage(page) {
     currentPage = page;
+    const isHabit = page.startsWith('habit');
     pages.forEach((p) => {
       p.hidden = p.id !== 'page-' + page;
     });
+    if (navDaily) navDaily.hidden = isHabit;
+    if (navHabit) navHabit.hidden = !isHabit;
     tabs.forEach((t) => {
       const active = t.dataset.page === page;
       t.classList.toggle('active', active);
       t.setAttribute('aria-selected', String(active));
     });
+    sidebarItems.forEach((s) => {
+      s.classList.toggle('active', s.dataset.module === (isHabit ? 'habit' : 'daily'));
+    });
+    closeSidebar();
+    if (page === 'habit-stats') {
+      requestAnimationFrame(() => renderStatsChart());
+    }
   }
 
   // ---- 事件绑定 ----
@@ -3273,6 +3283,434 @@
 
   tabs.forEach((t) => t.addEventListener('click', () => switchPage(t.dataset.page)));
 
+  // ================= 习惯模块 =================
+  const HABIT_STORAGE_KEY = 'tt-workbench.habits';
+  const HABIT_CAT_KEY = 'tt-workbench.habitCategories';
+  const HABIT_POINTS_KEY = 'tt-workbench.habitPoints';
+  const WISH_STORAGE_KEY = 'tt-workbench.wishes';
+
+  const navDaily = document.getElementById('nav-daily');
+  const navHabit = document.getElementById('nav-habit');
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  const sidebar = document.getElementById('sidebar');
+  const sidebarItems = Array.from(document.querySelectorAll('.sidebar-item'));
+
+  const habitList = document.getElementById('habit-list');
+  const habitEmpty = document.getElementById('habit-empty');
+  const habitDateEl = document.getElementById('habit-date');
+  const btnAddHabit = document.getElementById('btn-add-habit');
+  const habitEditorOverlay = document.getElementById('habit-editor-overlay');
+  const habitEditorCancel = document.getElementById('habit-editor-cancel');
+  const habitEditorSave = document.getElementById('habit-editor-save');
+  const habitNameInput = document.getElementById('habit-name-input');
+  const habitCategorySelect = document.getElementById('habit-category-select');
+  const habitPointsInput = document.getElementById('habit-points-input');
+  const habitFreqSelect = document.getElementById('habit-freq-select');
+  const habitWeekdays = document.getElementById('habit-weekdays');
+  const habitIconPreview = document.getElementById('habit-icon-preview');
+  const habitIconUpload = document.getElementById('habit-icon-upload');
+  const habitIconFile = document.getElementById('habit-icon-file');
+
+  const statsChart = document.getElementById('stats-chart');
+  const statsRange = document.getElementById('stats-range');
+  const statsSummary = document.getElementById('stats-summary');
+
+  const pointsNum = document.getElementById('points-num');
+  const wishList = document.getElementById('wish-list');
+  const wishEmpty = document.getElementById('wish-empty');
+  const btnAddWish = document.getElementById('btn-add-wish');
+  const wishEditorOverlay = document.getElementById('wish-editor-overlay');
+  const wishEditorCancel = document.getElementById('wish-editor-cancel');
+  const wishEditorSave = document.getElementById('wish-editor-save');
+  const wishNameInput = document.getElementById('wish-name-input');
+  const wishCostInput = document.getElementById('wish-cost-input');
+  const wishIconInput = document.getElementById('wish-icon-input');
+
+  let habits = loadHabits();
+  let habitCategories = loadHabitCategories();
+  let habitPoints = loadHabitPoints();
+  let habitWishes = loadHabitWishes();
+  let editingHabitId = null;
+  let habitDraftIcon = '';
+  let habitDraftCategory = '日常';
+  let habitDraftFreq = 'daily';
+  let habitDraftWeekdays = [];
+  let statsRangeMode = 'week';
+
+  // ---- 存储 ----
+  function loadHabits() { try { const d = JSON.parse(localStorage.getItem(HABIT_STORAGE_KEY) || '[]'); return Array.isArray(d) ? d : []; } catch (e) { return []; } }
+  function saveHabits() { try { localStorage.setItem(HABIT_STORAGE_KEY, JSON.stringify(habits)); } catch (e) {} }
+  function loadHabitCategories() {
+    const defaults = ['日常'];
+    try { const d = JSON.parse(localStorage.getItem(HABIT_CAT_KEY) || '[]'); const m = defaults.slice(); (Array.isArray(d) ? d : []).forEach((c) => { if (c && !m.includes(c)) m.push(c); }); return m; } catch (e) { return defaults.slice(); }
+  }
+  function saveHabitCategories() { try { localStorage.setItem(HABIT_CAT_KEY, JSON.stringify(habitCategories)); } catch (e) {} }
+  function loadHabitPoints() { return Number(localStorage.getItem(HABIT_POINTS_KEY)) || 0; }
+  function saveHabitPoints() { try { localStorage.setItem(HABIT_POINTS_KEY, String(habitPoints)); } catch (e) {} }
+  function loadHabitWishes() { try { const d = JSON.parse(localStorage.getItem(WISH_STORAGE_KEY) || '[]'); return Array.isArray(d) ? d : []; } catch (e) { return []; } }
+  function saveHabitWishes() { try { localStorage.setItem(WISH_STORAGE_KEY, JSON.stringify(habitWishes)); } catch (e) {} }
+
+  function habitCount(h) { return (h.records || {})[todayStr()] || 0; }
+  function setHabitCount(h, count) { if (!h.records) h.records = {}; h.records[todayStr()] = Math.max(0, count); }
+
+  // ---- 侧栏 ----
+  function openSidebar() { sidebarOverlay.hidden = false; sidebar.hidden = false; requestAnimationFrame(() => sidebar.classList.add('open')); }
+  function closeSidebar() { sidebarOverlay.hidden = true; sidebar.hidden = true; sidebar.classList.remove('open'); }
+
+  // ---- 每日页 ----
+  function renderHabits() {
+    habitList.innerHTML = '';
+    const grouped = {};
+    habits.forEach((h) => { const c = h.category || '日常'; (grouped[c] = grouped[c] || []).push(h); });
+    const cats = Object.keys(grouped);
+    habitEmpty.hidden = cats.length > 0;
+    habitDateEl.textContent = (new Date().getMonth() + 1) + '月' + new Date().getDate() + '日';
+    cats.forEach((cat) => {
+      const group = document.createElement('div');
+      group.className = 'habit-group';
+      const label = document.createElement('div');
+      label.className = 'habit-group-label';
+      label.textContent = cat;
+      group.appendChild(label);
+      const row = document.createElement('div');
+      row.className = 'habit-row';
+      grouped[cat].forEach((h) => row.appendChild(buildHabitItem(h)));
+      group.appendChild(row);
+      habitList.appendChild(group);
+    });
+  }
+
+  function buildHabitItem(h) {
+    const item = document.createElement('div');
+    item.className = 'habit-item';
+    item.dataset.id = h.id;
+
+    const iconBtn = document.createElement('button');
+    iconBtn.type = 'button';
+    iconBtn.className = 'habit-icon-btn';
+    if (h.icon) {
+      const img = document.createElement('img');
+      img.src = h.icon;
+      img.alt = '';
+      iconBtn.appendChild(img);
+    } else {
+      iconBtn.textContent = '🌱';
+    }
+    iconBtn.addEventListener('click', () => tapHabit(h));
+
+    const name = document.createElement('div');
+    name.className = 'habit-name';
+    name.textContent = h.name;
+
+    const counter = document.createElement('div');
+    counter.className = 'habit-counter';
+    const minus = document.createElement('button');
+    minus.type = 'button';
+    minus.className = 'habit-adj';
+    minus.textContent = '－';
+    minus.addEventListener('click', () => adjustHabit(h, -1));
+    const num = document.createElement('span');
+    num.className = 'habit-count';
+    num.textContent = habitCount(h);
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'habit-adj';
+    plus.textContent = '＋';
+    plus.addEventListener('click', () => adjustHabit(h, 1));
+    counter.appendChild(minus);
+    counter.appendChild(num);
+    counter.appendChild(plus);
+
+    item.appendChild(iconBtn);
+    item.appendChild(name);
+    item.appendChild(counter);
+
+    let pressTimer = null;
+    item.addEventListener('touchstart', () => { pressTimer = setTimeout(() => { clearTimeout(pressTimer); openHabitEditor(h); }, 600); });
+    item.addEventListener('touchend', () => clearTimeout(pressTimer));
+    item.addEventListener('touchmove', () => clearTimeout(pressTimer));
+    return item;
+  }
+
+  function tapHabit(h) {
+    setHabitCount(h, habitCount(h) + 1);
+    habitPoints += (h.points || 0);
+    saveHabits();
+    saveHabitPoints();
+    updatePointsUI();
+    renderHabits();
+    const item = habitList.querySelector('.habit-item[data-id="' + h.id + '"]');
+    if (item) {
+      const iconBtn = item.querySelector('.habit-icon-btn');
+      const float = document.createElement('span');
+      float.className = 'habit-float';
+      float.textContent = '+' + (h.points || 0);
+      iconBtn.appendChild(float);
+      setTimeout(() => float.remove(), 900);
+    }
+  }
+
+  function adjustHabit(h, delta) {
+    setHabitCount(h, habitCount(h) + delta);
+    habitPoints += delta * (h.points || 0);
+    habitPoints = Math.max(0, habitPoints);
+    saveHabits();
+    saveHabitPoints();
+    updatePointsUI();
+    renderHabits();
+  }
+
+  // ---- 习惯编辑器 ----
+  function openHabitEditor(habit) {
+    editingHabitId = habit ? habit.id : null;
+    habitDraftIcon = habit ? (habit.icon || '') : '';
+    habitDraftCategory = habit ? (habit.category || '日常') : '日常';
+    habitDraftFreq = habit ? (habit.freq || 'daily') : 'daily';
+    habitDraftWeekdays = habit && habit.weekdays ? habit.weekdays.slice() : [];
+    habitNameInput.value = habit ? habit.name : '';
+    habitPointsInput.value = habit ? (habit.points || 1) : 1;
+    renderHabitIconPreview();
+    renderHabitCategorySelect();
+    renderHabitFreqSelect();
+    habitEditorOverlay.hidden = false;
+    requestAnimationFrame(() => habitNameInput.focus());
+  }
+  function closeHabitEditor() { habitEditorOverlay.hidden = true; }
+  function saveHabit() {
+    const name = habitNameInput.value.trim();
+    if (!name) { habitNameInput.focus(); return; }
+    const points = Math.max(0, Number(habitPointsInput.value) || 0);
+    const data = {
+      name: name,
+      category: habitDraftCategory,
+      icon: habitDraftIcon,
+      points: points,
+      freq: habitDraftFreq,
+      weekdays: habitDraftFreq === 'weekly' ? habitDraftWeekdays.slice() : [],
+    };
+    if (editingHabitId) {
+      const idx = habits.findIndex((h) => h.id === editingHabitId);
+      if (idx >= 0) habits[idx] = Object.assign({}, habits[idx], data);
+    } else {
+      habits.push(Object.assign({ id: uid(), records: {} }, data));
+    }
+    saveHabits();
+    closeHabitEditor();
+    renderHabits();
+    editingHabitId = null;
+  }
+
+  function renderHabitIconPreview() {
+    if (habitDraftIcon) { habitIconPreview.src = habitDraftIcon; habitIconPreview.hidden = false; habitIconUpload.textContent = '更换图标'; }
+    else { habitIconPreview.hidden = true; habitIconUpload.textContent = '📷 上传图标'; }
+  }
+  function renderHabitCategorySelect() {
+    habitCategorySelect.innerHTML = '';
+    habitCategories.forEach((c) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'habit-chip' + (c === habitDraftCategory ? ' active' : '');
+      b.textContent = c;
+      b.addEventListener('click', () => { habitDraftCategory = c; renderHabitCategorySelect(); });
+      habitCategorySelect.appendChild(b);
+    });
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'habit-chip habit-chip-add';
+    add.textContent = '＋新增';
+    add.addEventListener('click', () => {
+      const n = prompt('新分类名称');
+      if (n && n.trim() && !habitCategories.includes(n.trim())) {
+        habitCategories.push(n.trim());
+        saveHabitCategories();
+        habitDraftCategory = n.trim();
+        renderHabitCategorySelect();
+      }
+    });
+    habitCategorySelect.appendChild(add);
+  }
+  const FREQ_OPTIONS = [['once', '单次'], ['daily', '每天'], ['weekly', '每周']];
+  const WEEKDAY_NAMES = ['', '一', '二', '三', '四', '五', '六', '日'];
+  function renderHabitFreqSelect() {
+    habitFreqSelect.innerHTML = '';
+    FREQ_OPTIONS.forEach(([val, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'habit-chip' + (habitDraftFreq === val ? ' active' : '');
+      b.textContent = label;
+      b.addEventListener('click', () => { habitDraftFreq = val; renderHabitFreqSelect(); });
+      habitFreqSelect.appendChild(b);
+    });
+    habitWeekdays.hidden = habitDraftFreq !== 'weekly';
+    if (habitDraftFreq === 'weekly') renderHabitWeekdays();
+  }
+  function renderHabitWeekdays() {
+    habitWeekdays.innerHTML = '';
+    for (let d = 1; d <= 7; d++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'habit-chip' + (habitDraftWeekdays.includes(d) ? ' active' : '');
+      b.textContent = '周' + WEEKDAY_NAMES[d];
+      b.addEventListener('click', () => {
+        habitDraftWeekdays = habitDraftWeekdays.includes(d) ? habitDraftWeekdays.filter((x) => x !== d) : habitDraftWeekdays.concat(d);
+        renderHabitWeekdays();
+      });
+      habitWeekdays.appendChild(b);
+    }
+  }
+
+  // ---- 积分页 ----
+  function updatePointsUI() { pointsNum.textContent = habitPoints; }
+  function renderWishes() {
+    wishList.innerHTML = '';
+    wishEmpty.hidden = habitWishes.length > 0;
+    habitWishes.forEach((w) => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'wish-item';
+      const icon = document.createElement('span'); icon.className = 'wish-icon'; icon.textContent = w.icon || '🌟';
+      const body = document.createElement('span'); body.className = 'wish-body';
+      const name = document.createElement('span'); name.className = 'wish-name'; name.textContent = w.name;
+      const cost = document.createElement('span'); cost.className = 'wish-cost'; cost.textContent = w.cost + ' 积分';
+      body.appendChild(name); body.appendChild(cost);
+      item.appendChild(icon); item.appendChild(body);
+      item.addEventListener('click', () => completeWish(w));
+      wishList.appendChild(item);
+    });
+  }
+  function completeWish(w) {
+    if (!confirm('你确定要花 ' + w.cost + ' 积分完成这个心愿吗？')) return;
+    if (habitPoints < w.cost) { alert('积分不够哦，还差 ' + (w.cost - habitPoints) + ' 积分'); return; }
+    habitPoints -= w.cost;
+    saveHabitPoints();
+    updatePointsUI();
+  }
+  function openWishEditor() { wishNameInput.value = ''; wishCostInput.value = 10; wishIconInput.value = ''; wishEditorOverlay.hidden = false; requestAnimationFrame(() => wishNameInput.focus()); }
+  function closeWishEditor() { wishEditorOverlay.hidden = true; }
+  function saveWish() {
+    const name = wishNameInput.value.trim();
+    if (!name) { wishNameInput.focus(); return; }
+    const cost = Math.max(1, Number(wishCostInput.value) || 1);
+    habitWishes.unshift({ id: uid(), name: name, cost: cost, icon: wishIconInput.value.trim() || '🌟' });
+    saveHabitWishes();
+    closeWishEditor();
+    renderWishes();
+  }
+
+  // ---- 统计页 ----
+  const HABIT_COLORS = ['#f4a261', '#5aa9e6', '#7bc47f', '#e07a5f', '#b5838d', '#6d9dc5', '#e8a87c', '#95b8d1', '#f2c94c', '#a78bfa'];
+  function renderStatsChart() {
+    if (!statsChart || statsChart.closest('.page').hidden) return;
+    const wrap = statsChart.parentElement;
+    const w = wrap.clientWidth || 300;
+    const h = wrap.clientHeight || 220;
+    const dpr = window.devicePixelRatio || 1;
+    statsChart.width = w * dpr;
+    statsChart.height = h * dpr;
+    statsChart.style.width = w + 'px';
+    statsChart.style.height = h + 'px';
+    const ctx = statsChart.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const days = statsRangeMode === 'week' ? 7 : (statsRangeMode === 'month' ? 30 : 365);
+    const labels = [];
+    const now = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      labels.push(dateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)));
+    }
+    const series = habits.map((h, i) => ({
+      name: h.name,
+      color: HABIT_COLORS[i % HABIT_COLORS.length],
+      data: labels.map((ds) => (h.records || {})[ds] || 0),
+    }));
+
+    const padL = 30, padR = 10, padT = 10, padB = 24;
+    const plotW = w - padL - padR;
+    const plotH = h - padT - padB;
+    const maxV = Math.max(1, ...series.flatMap((s) => s.data));
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.font = '10px sans-serif';
+    for (let g = 0; g <= 4; g++) {
+      const y = padT + plotH - (g / 4) * plotH;
+      const val = Math.round((g / 4) * maxV);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+      ctx.fillText(String(val), padL - 4, y);
+    }
+    const labelStep = Math.max(1, Math.ceil(days / 6));
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    labels.forEach((ds, i) => {
+      if (i % labelStep !== 0 && i !== labels.length - 1) return;
+      const x = padL + (days === 1 ? plotW / 2 : (i / (days - 1)) * plotW);
+      ctx.fillText(days > 30 ? ds.slice(5) : ds.slice(8), x, padT + plotH + 6);
+    });
+    series.forEach((s) => {
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      s.data.forEach((v, i) => {
+        const x = padL + (days === 1 ? plotW / 2 : (i / (days - 1)) * plotW);
+        const y = padT + plotH - (v / maxV) * plotH;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    });
+    renderStatsSummary(series);
+  }
+  function renderStatsSummary(series) {
+    statsSummary.innerHTML = '';
+    series.forEach((s) => {
+      const total = s.data.reduce((a, b) => a + b, 0);
+      const habit = habits.find((h) => h.name === s.name);
+      const earned = habit ? total * (habit.points || 0) : 0;
+      const row = document.createElement('div');
+      row.className = 'stats-row';
+      const dot = document.createElement('span'); dot.className = 'stats-dot'; dot.style.background = s.color;
+      const name = document.createElement('span'); name.className = 'stats-name'; name.textContent = s.name;
+      const nums = document.createElement('span'); nums.className = 'stats-nums'; nums.textContent = total + ' 次 · ' + earned + ' 积分';
+      row.appendChild(dot); row.appendChild(name); row.appendChild(nums);
+      statsSummary.appendChild(row);
+    });
+  }
+
+  // ---- 事件绑定 ----
+  hamburgerBtn.addEventListener('click', () => { if (sidebar.hidden) openSidebar(); else closeSidebar(); });
+  sidebarOverlay.addEventListener('click', closeSidebar);
+  sidebarItems.forEach((s) => {
+    s.addEventListener('click', () => switchPage(s.dataset.module === 'habit' ? 'habit-daily' : 'today'));
+  });
+  btnAddHabit.addEventListener('click', () => openHabitEditor(null));
+  habitEditorCancel.addEventListener('click', closeHabitEditor);
+  habitEditorSave.addEventListener('click', saveHabit);
+  habitEditorOverlay.addEventListener('click', (e) => { if (e.target === habitEditorOverlay) closeHabitEditor(); });
+  habitIconUpload.addEventListener('click', () => habitIconFile.click());
+  habitIconFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { habitDraftIcon = reader.result; renderHabitIconPreview(); };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  });
+  statsRange.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-range]');
+    if (!btn) return;
+    statsRangeMode = btn.dataset.range;
+    statsRange.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
+    renderStatsChart();
+  });
+  btnAddWish.addEventListener('click', openWishEditor);
+  wishEditorCancel.addEventListener('click', closeWishEditor);
+  wishEditorSave.addEventListener('click', saveWish);
+  wishEditorOverlay.addEventListener('click', (e) => { if (e.target === wishEditorOverlay) closeWishEditor(); });
+
   // ---- 初始化 ----
   todaySignature.textContent = localStorage.getItem(SIGNATURE_KEY) || '';
   updateWeatherMoodUI();
@@ -3282,6 +3720,9 @@
   renderMemoCategoryMenu();
   renderDreams();
   renderProfile();
+  renderHabits();
+  updatePointsUI();
+  renderWishes();
   // 首次任意交互解锁音频，保证提醒声音能响
   const unlockAudio = () => {
     try {

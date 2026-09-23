@@ -19,6 +19,21 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <button type="button" class="hamburger-btn" id="hamburger-btn" aria-label="菜单">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+
+  <div class="sidebar-overlay" id="sidebar-overlay" hidden></div>
+  <aside class="sidebar" id="sidebar" hidden>
+    <div class="sidebar-head">tt 的工作台</div>
+    <button type="button" class="sidebar-item active" data-module="daily">
+      <span class="sidebar-emoji">🌞</span><span>日常</span>
+    </button>
+    <button type="button" class="sidebar-item" data-module="habit">
+      <span class="sidebar-emoji">🌱</span><span>习惯</span>
+    </button>
+  </aside>
+
   <main>
     <!-- 今日 -->
     <section class="page" id="page-today">
@@ -162,9 +177,53 @@
         <input type="file" id="me-avatar-file" accept="image/*" hidden>
       </div>
     </section>
+    <!-- 习惯模块 -->
+    <section class="page module-habit" id="page-habit-daily" hidden>
+      <header class="habit-header">
+        <h1 class="habit-title">习惯</h1>
+        <span class="habit-date" id="habit-date"></span>
+      </header>
+      <div class="habit-list" id="habit-list"></div>
+      <p class="empty-state" id="habit-empty" hidden>还没有习惯，点右下角 ➕ 添加</p>
+      <div class="fab">
+        <button class="btn-add" id="btn-add-habit" aria-label="添加习惯">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="page module-habit" id="page-habit-stats" hidden>
+      <header class="habit-header">
+        <h1 class="habit-title">统计</h1>
+        <div class="stats-range" id="stats-range">
+          <button type="button" class="active" data-range="week">一周</button>
+          <button type="button" data-range="month">一月</button>
+          <button type="button" data-range="year">一年</button>
+        </div>
+      </header>
+      <div class="stats-chart-wrap"><canvas id="stats-chart"></canvas></div>
+      <div class="stats-summary" id="stats-summary"></div>
+    </section>
+
+    <section class="page module-habit" id="page-habit-points" hidden>
+      <header class="habit-header">
+        <h1 class="habit-title">积分</h1>
+      </header>
+      <div class="points-total">
+        <span class="points-num" id="points-num">0</span>
+        <span class="points-label">积分</span>
+      </div>
+      <div class="wish-list" id="wish-list"></div>
+      <p class="empty-state" id="wish-empty" hidden>还没有心愿，点右下角 ➕ 添加</p>
+      <div class="fab">
+        <button class="btn-add" id="btn-add-wish" aria-label="添加心愿">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+      </div>
+    </section>
   </main>
 
-  <nav class="tabbar" aria-label="主导航">
+  <nav class="tabbar" id="nav-daily" aria-label="主导航">
     <div class="tabbar-inner">
       <button class="tab active" data-page="today" role="tab" aria-selected="true">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -185,6 +244,23 @@
       <button class="tab" data-page="me" role="tab" aria-selected="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span>我</span>
+      </button>
+    </div>
+  </nav>
+
+  <nav class="tabbar" id="nav-habit" aria-label="习惯导航" hidden>
+    <div class="tabbar-inner">
+      <button class="tab" data-page="habit-daily" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+        <span>每日</span>
+      </button>
+      <button class="tab" data-page="habit-stats" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+        <span>统计</span>
+      </button>
+      <button class="tab" data-page="habit-points" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span>积分</span>
       </button>
     </div>
   </nav>
@@ -508,6 +584,50 @@
     </div>
     <div class="alarm-name" id="alarm-name"></div>
     <button type="button" class="alarm-cancel" id="alarm-cancel">取消</button>
+  </div>
+
+  <!-- 习惯编辑器 -->
+  <div class="editor-overlay" id="habit-editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="编辑习惯">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="habit-editor-cancel">取消</button>
+        <span class="editor-title-label editor-title-dark">编辑习惯</span>
+        <button type="button" class="editor-done" id="habit-editor-save">保存</button>
+      </header>
+      <div class="editor-body">
+        <div class="habit-icon-picker">
+          <img id="habit-icon-preview" alt="习惯图标" hidden>
+          <button type="button" class="habit-icon-upload-btn" id="habit-icon-upload">📷 上传图标</button>
+          <input type="file" id="habit-icon-file" accept="image/*" hidden>
+        </div>
+        <input type="text" id="habit-name-input" class="memo-title-input" placeholder="习惯名字" maxlength="30" autocomplete="off">
+        <label class="field-label">分类</label>
+        <div class="habit-category-select" id="habit-category-select"></div>
+        <label class="field-label">每次完成可得积分</label>
+        <input type="number" id="habit-points-input" class="date-input" min="0" step="1" value="1">
+        <label class="field-label">频率</label>
+        <div class="habit-freq-select" id="habit-freq-select"></div>
+        <div class="habit-weekdays" id="habit-weekdays" hidden></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 心愿编辑器 -->
+  <div class="editor-overlay" id="wish-editor-overlay" hidden>
+    <div class="editor-sheet" role="dialog" aria-modal="true" aria-label="添加心愿">
+      <header class="editor-header">
+        <button type="button" class="editor-cancel" id="wish-editor-cancel">取消</button>
+        <span class="editor-title-label editor-title-dark">心愿</span>
+        <button type="button" class="editor-done" id="wish-editor-save">保存</button>
+      </header>
+      <div class="editor-body">
+        <input type="text" id="wish-name-input" class="memo-title-input" placeholder="心愿内容" maxlength="50" autocomplete="off">
+        <label class="field-label">所需积分</label>
+        <input type="number" id="wish-cost-input" class="date-input" min="1" step="1" value="10">
+        <label class="field-label">图标（可选 emoji）</label>
+        <input type="text" id="wish-icon-input" class="date-input" placeholder="例如 🌟" maxlength="4">
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
