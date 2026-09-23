@@ -3406,6 +3406,7 @@
       const img = document.createElement('img');
       img.src = h.icon;
       img.alt = '';
+      img.draggable = false;
       iconBtn.appendChild(img);
     } else {
       iconBtn.textContent = '🌱';
@@ -3443,6 +3444,7 @@
     item.addEventListener('touchstart', () => { pressTimer = setTimeout(() => { clearTimeout(pressTimer); openHabitEditor(h); }, 600); });
     item.addEventListener('touchend', () => clearTimeout(pressTimer));
     item.addEventListener('touchmove', () => clearTimeout(pressTimer));
+    item.addEventListener('contextmenu', (e) => e.preventDefault());
     return item;
   }
 

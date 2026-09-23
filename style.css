@@ -2701,6 +2701,9 @@ body.in-habit {
   align-items: center;
   gap: 6px;
   width: 78px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .habit-icon-btn {
   position: relative;
@@ -2715,12 +2718,15 @@ body.in-habit {
   place-items: center;
   font-size: 28px;
   overflow: visible;
+  -webkit-touch-callout: none;
 }
 .habit-icon-btn img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 .habit-name {
   font-size: 12px;
