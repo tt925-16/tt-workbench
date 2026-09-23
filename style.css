@@ -3272,3 +3272,13 @@ body.in-material {
   resize: vertical;
   outline: none;
 }
+
+/* 素材库没有底部导航，fab 往下放 */
+body.in-material .fab {
+  bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+/* 分析笔记输入框加大，方便写很多 */
+#material-ref-notes {
+  min-height: 240px;
+}
