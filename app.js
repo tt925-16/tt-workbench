@@ -102,7 +102,9 @@
   const projectDiary = document.getElementById('project-diary');
   const diaryBack = document.getElementById('diary-back');
   const diaryTitle = document.getElementById('diary-title');
-  const diaryPage = document.getElementById('diary-page');
+  const bookSpread = document.getElementById('book-spread');
+  const diaryPageLeft = document.getElementById('diary-page-left');
+  const diaryPageRight = document.getElementById('diary-page-right');
   const diaryPrev = document.getElementById('diary-prev');
   const diaryNext = document.getElementById('diary-next');
   const diaryIndicator = document.getElementById('diary-indicator');
@@ -1581,7 +1583,7 @@
     if (!project) return;
     diaryTitle.textContent = project.name + ' · 日记';
     diaryDays = getDiaryDays(project);
-    diaryPageIndex = diaryDays.length - 1;
+    diaryPageIndex = Math.max(0, diaryDays.length - 2);
     renderDiaryPage();
     projectDiary.hidden = false;
   }
@@ -1591,42 +1593,49 @@
   }
 
   function renderDiaryPage() {
-    const page = diaryDays[diaryPageIndex];
-    diaryPage.innerHTML = '';
-    if (!page) {
-      const empty = document.createElement('p');
-      empty.className = 'empty-state';
-      empty.textContent = '还没有记录';
-      diaryPage.appendChild(empty);
+    renderBookPage(diaryPageLeft, diaryDays[diaryPageIndex]);
+    renderBookPage(diaryPageRight, diaryDays[diaryPageIndex + 1]);
+    if (diaryDays.length === 0) {
       diaryPrev.disabled = true;
       diaryNext.disabled = true;
       diaryIndicator.textContent = '0 / 0';
+    } else {
+      diaryPrev.disabled = diaryPageIndex <= 0;
+      diaryNext.disabled = diaryPageIndex >= diaryDays.length - 1;
+      diaryIndicator.textContent = (diaryPageIndex + 1) + ' / ' + diaryDays.length;
+    }
+  }
+
+  function renderBookPage(el, page) {
+    el.innerHTML = '';
+    if (!page) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-state';
+      empty.textContent = '';
+      el.appendChild(empty);
       return;
     }
     const dateHeader = document.createElement('div');
     dateHeader.className = 'diary-page-date';
     dateHeader.textContent = formatDiaryDate(page.day);
-    diaryPage.appendChild(dateHeader);
-    page.entries.forEach((e) => diaryPage.appendChild(createDiaryEntry(e)));
-    diaryPrev.disabled = diaryPageIndex === 0;
-    diaryNext.disabled = diaryPageIndex === diaryDays.length - 1;
-    diaryIndicator.textContent = (diaryPageIndex + 1) + ' / ' + diaryDays.length;
+    el.appendChild(dateHeader);
+    page.entries.forEach((e) => el.appendChild(createDiaryEntry(e)));
   }
 
   function flipDiary(dir) {
-    if (diaryPage.classList.contains('flipping')) return;
+    if (bookSpread.classList.contains('flipping')) return;
     const newIndex = diaryPageIndex + dir;
-    if (newIndex < 0 || newIndex >= diaryDays.length) return;
-    diaryPage.classList.add('flipping');
-    diaryPage.style.transform = dir > 0 ? 'rotateY(-90deg)' : 'rotateY(90deg)';
+    if (diaryDays.length === 0 || newIndex < 0 || newIndex >= diaryDays.length) return;
+    bookSpread.classList.add('flipping');
+    bookSpread.style.transform = dir > 0 ? 'rotateY(-60deg)' : 'rotateY(60deg)';
     setTimeout(() => {
       diaryPageIndex = newIndex;
       renderDiaryPage();
-      diaryPage.style.transform = dir > 0 ? 'rotateY(90deg)' : 'rotateY(-90deg)';
+      bookSpread.style.transform = dir > 0 ? 'rotateY(60deg)' : 'rotateY(-60deg)';
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          diaryPage.style.transform = 'rotateY(0deg)';
-          setTimeout(() => diaryPage.classList.remove('flipping'), 240);
+          bookSpread.style.transform = 'rotateY(0deg)';
+          setTimeout(() => bookSpread.classList.remove('flipping'), 240);
         });
       });
     }, 230);
@@ -1692,7 +1701,7 @@
     saveProjects();
     closeDiaryNote();
     diaryDays = getDiaryDays(project);
-    diaryPageIndex = diaryDays.length - 1;
+    diaryPageIndex = Math.max(0, diaryDays.length - 2);
     renderDiaryPage();
   }
 
