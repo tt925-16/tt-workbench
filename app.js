@@ -3176,53 +3176,6 @@
   });
   dreamTextBody.addEventListener('input', () => autoGrow(dreamTextBody));
 
-  // 音乐图标：点按播放/暂停，长按添加离线音乐
-  let musicLongPressTimer = null;
-  let musicLongPressed = false;
-  btnDreamMusic.addEventListener('pointerdown', () => {
-    musicLongPressed = false;
-    musicLongPressTimer = setTimeout(() => {
-      musicLongPressed = true;
-      musicFileInput.click();
-    }, 550);
-  });
-  btnDreamMusic.addEventListener('pointerup', () => clearTimeout(musicLongPressTimer));
-  btnDreamMusic.addEventListener('pointerleave', () => clearTimeout(musicLongPressTimer));
-  btnDreamMusic.addEventListener('click', () => {
-    if (musicLongPressed) {
-      musicLongPressed = false;
-      return;
-    }
-    togglePlay();
-  });
-  musicFileInput.addEventListener('change', (e) => {
-    addMusicFiles(e.target.files);
-    e.target.value = '';
-  });
-  musicPlay.addEventListener('click', togglePlay);
-  musicNext.addEventListener('click', nextMusic);
-  musicPrev.addEventListener('click', prevMusic);
-  musicMode.addEventListener('click', togglePlayMode);
-  musicListBtn.addEventListener('click', () => {
-    renderMusicList();
-    musicListPanel.hidden = !musicListPanel.hidden;
-  });
-
-  // 音乐条左滑 → 退出音乐模式（停止播放并隐藏播放条）
-  let musicBarStartX = 0;
-  let musicBarStartY = 0;
-  musicBar.addEventListener('pointerdown', (e) => {
-    musicBarStartX = e.clientX;
-    musicBarStartY = e.clientY;
-  });
-  musicBar.addEventListener('pointerup', (e) => {
-    const dx = e.clientX - musicBarStartX;
-    const dy = e.clientY - musicBarStartY;
-    if (dx < -50 && Math.abs(dx) > Math.abs(dy)) {
-      exitMusicMode();
-    }
-  });
-
   // 全局：所有按钮点击弹跳动画 + 音效
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
