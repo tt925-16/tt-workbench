@@ -102,9 +102,7 @@
   const projectDiary = document.getElementById('project-diary');
   const diaryBack = document.getElementById('diary-back');
   const diaryTitle = document.getElementById('diary-title');
-  const bookSpread = document.getElementById('book-spread');
-  const diaryPageLeft = document.getElementById('diary-page-left');
-  const diaryPageRight = document.getElementById('diary-page-right');
+  const diaryPage = document.getElementById('diary-page');
   const diaryPrev = document.getElementById('diary-prev');
   const diaryNext = document.getElementById('diary-next');
   const diaryIndicator = document.getElementById('diary-indicator');
@@ -1583,7 +1581,7 @@
     if (!project) return;
     diaryTitle.textContent = project.name + ' · 日记';
     diaryDays = getDiaryDays(project);
-    diaryPageIndex = Math.max(0, diaryDays.length - 2);
+    diaryPageIndex = diaryDays.length - 1;
     renderDiaryPage();
     projectDiary.hidden = false;
   }
@@ -1593,52 +1591,26 @@
   }
 
   function renderDiaryPage() {
-    renderBookPage(diaryPageLeft, diaryDays[diaryPageIndex]);
-    renderBookPage(diaryPageRight, diaryDays[diaryPageIndex + 1]);
-    if (diaryDays.length === 0) {
-      diaryPrev.disabled = true;
-      diaryNext.disabled = true;
-      diaryIndicator.textContent = '0 / 0';
-    } else {
-      diaryPrev.disabled = diaryPageIndex <= 0;
-      diaryNext.disabled = diaryPageIndex >= diaryDays.length - 1;
-      diaryIndicator.textContent = (diaryPageIndex + 1) + ' / ' + diaryDays.length;
-    }
-  }
-
-  function renderBookPage(el, page) {
-    el.innerHTML = '';
+    const page = diaryDays[diaryPageIndex];
+    diaryPage.innerHTML = '';
     if (!page) {
       const empty = document.createElement('p');
       empty.className = 'empty-state';
-      empty.textContent = '';
-      el.appendChild(empty);
+      empty.textContent = '还没有记录';
+      diaryPage.appendChild(empty);
+      diaryPrev.disabled = true;
+      diaryNext.disabled = true;
+      diaryIndicator.textContent = '0 / 0';
       return;
     }
     const dateHeader = document.createElement('div');
     dateHeader.className = 'diary-page-date';
     dateHeader.textContent = formatDiaryDate(page.day);
-    el.appendChild(dateHeader);
-    page.entries.forEach((e) => el.appendChild(createDiaryEntry(e)));
-  }
-
-  function flipDiary(dir) {
-    if (bookSpread.classList.contains('flipping')) return;
-    const newIndex = diaryPageIndex + dir;
-    if (diaryDays.length === 0 || newIndex < 0 || newIndex >= diaryDays.length) return;
-    bookSpread.classList.add('flipping');
-    bookSpread.style.transform = dir > 0 ? 'rotateY(-60deg)' : 'rotateY(60deg)';
-    setTimeout(() => {
-      diaryPageIndex = newIndex;
-      renderDiaryPage();
-      bookSpread.style.transform = dir > 0 ? 'rotateY(60deg)' : 'rotateY(-60deg)';
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          bookSpread.style.transform = 'rotateY(0deg)';
-          setTimeout(() => bookSpread.classList.remove('flipping'), 240);
-        });
-      });
-    }, 230);
+    diaryPage.appendChild(dateHeader);
+    page.entries.forEach((e) => diaryPage.appendChild(createDiaryEntry(e)));
+    diaryPrev.disabled = diaryPageIndex === 0;
+    diaryNext.disabled = diaryPageIndex === diaryDays.length - 1;
+    diaryIndicator.textContent = (diaryPageIndex + 1) + ' / ' + diaryDays.length;
   }
 
   function createDiaryEntry(e) {
@@ -1701,7 +1673,7 @@
     saveProjects();
     closeDiaryNote();
     diaryDays = getDiaryDays(project);
-    diaryPageIndex = Math.max(0, diaryDays.length - 2);
+    diaryPageIndex = diaryDays.length - 1;
     renderDiaryPage();
   }
 
@@ -3130,8 +3102,18 @@
 
   btnDiaryOpen.addEventListener('click', openProjectDiary);
   diaryBack.addEventListener('click', closeProjectDiary);
-  diaryPrev.addEventListener('click', () => flipDiary(-1));
-  diaryNext.addEventListener('click', () => flipDiary(1));
+  diaryPrev.addEventListener('click', () => {
+    if (diaryPageIndex > 0) {
+      diaryPageIndex--;
+      renderDiaryPage();
+    }
+  });
+  diaryNext.addEventListener('click', () => {
+    if (diaryPageIndex < diaryDays.length - 1) {
+      diaryPageIndex++;
+      renderDiaryPage();
+    }
+  });
   btnDiaryWrite.addEventListener('click', openDiaryNote);
   diaryNoteCancel.addEventListener('click', closeDiaryNote);
   diaryNoteSave.addEventListener('click', saveDiaryNote);
