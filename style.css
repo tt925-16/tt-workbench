@@ -916,6 +916,12 @@ main {
   border-radius: 0;
   animation: none;
 }
+.memo-cat-swipe .swipe-delete {
+  width: 56px;
+  font-size: 22px;
+  background: #e07a5f;
+  color: #fff;
+}
 
 .memo-cat-add {
   padding: 10px 12px;

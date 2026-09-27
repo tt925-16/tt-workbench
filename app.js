@@ -1921,17 +1921,12 @@
 
       const actions = document.createElement('div');
       actions.className = 'swipe-actions';
-      const editBtn = document.createElement('button');
-      editBtn.type = 'button';
-      editBtn.className = 'swipe-btn swipe-edit';
-      editBtn.textContent = '编辑';
-      editBtn.addEventListener('click', () => editMemoCategory(cat));
       const delBtn = document.createElement('button');
       delBtn.type = 'button';
-      delBtn.className = 'swipe-btn swipe-delete';
-      delBtn.textContent = '删除';
+      delBtn.className = 'swipe-btn swipe-delete memo-del-x';
+      delBtn.textContent = '✕';
+      delBtn.setAttribute('aria-label', '删除分类');
       delBtn.addEventListener('click', () => deleteMemoCategory(cat));
-      actions.appendChild(editBtn);
       actions.appendChild(delBtn);
 
       const content = document.createElement('div');
@@ -1940,12 +1935,23 @@
       btn.type = 'button';
       btn.className = 'memo-cat-option' + (cat === activeCategory ? ' active' : '');
       btn.textContent = cat;
-      btn.addEventListener('click', () => switchMemoCategory(cat));
       content.appendChild(btn);
 
       wrap.appendChild(actions);
       wrap.appendChild(content);
       enableSwipe(wrap, content);
+
+      let pressTimer = null;
+      let longPressed = false;
+      content.addEventListener('touchstart', () => { longPressed = false; pressTimer = setTimeout(() => { longPressed = true; clearTimeout(pressTimer); editMemoCategory(cat); }, 600); });
+      content.addEventListener('touchend', () => clearTimeout(pressTimer));
+      content.addEventListener('touchmove', () => clearTimeout(pressTimer));
+      content.addEventListener('contextmenu', (e) => e.preventDefault());
+      btn.addEventListener('click', () => {
+        if (longPressed) { longPressed = false; return; }
+        switchMemoCategory(cat);
+      });
+
       memoCategoryMenu.appendChild(wrap);
     });
     const addBtn = document.createElement('button');
