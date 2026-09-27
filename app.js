@@ -1613,6 +1613,25 @@
     diaryIndicator.textContent = (diaryPageIndex + 1) + ' / ' + diaryDays.length;
   }
 
+  function flipDiary(dir) {
+    if (diaryPage.classList.contains('flipping')) return;
+    const newIndex = diaryPageIndex + dir;
+    if (newIndex < 0 || newIndex >= diaryDays.length) return;
+    diaryPage.classList.add('flipping');
+    diaryPage.style.transform = dir > 0 ? 'rotateY(-90deg)' : 'rotateY(90deg)';
+    setTimeout(() => {
+      diaryPageIndex = newIndex;
+      renderDiaryPage();
+      diaryPage.style.transform = dir > 0 ? 'rotateY(90deg)' : 'rotateY(-90deg)';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          diaryPage.style.transform = 'rotateY(0deg)';
+          setTimeout(() => diaryPage.classList.remove('flipping'), 240);
+        });
+      });
+    }, 230);
+  }
+
   function createDiaryEntry(e) {
     const el = document.createElement('div');
     el.className = 'diary-entry';
@@ -3102,18 +3121,8 @@
 
   btnDiaryOpen.addEventListener('click', openProjectDiary);
   diaryBack.addEventListener('click', closeProjectDiary);
-  diaryPrev.addEventListener('click', () => {
-    if (diaryPageIndex > 0) {
-      diaryPageIndex--;
-      renderDiaryPage();
-    }
-  });
-  diaryNext.addEventListener('click', () => {
-    if (diaryPageIndex < diaryDays.length - 1) {
-      diaryPageIndex++;
-      renderDiaryPage();
-    }
-  });
+  diaryPrev.addEventListener('click', () => flipDiary(-1));
+  diaryNext.addEventListener('click', () => flipDiary(1));
   btnDiaryWrite.addEventListener('click', openDiaryNote);
   diaryNoteCancel.addEventListener('click', closeDiaryNote);
   diaryNoteSave.addEventListener('click', saveDiaryNote);
