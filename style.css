@@ -3301,3 +3301,41 @@ body.in-material .material-seg {
   background: #d97a6a;
   color: #fff;
 }
+
+/* 计划编辑器：不完成不消失 圈圈 */
+.keep-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: flex-end;
+  cursor: pointer;
+}
+.keep-toggle input {
+  display: none;
+}
+.keep-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: grid;
+  place-items: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.keep-toggle input:checked + .keep-circle {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.keep-toggle input:checked + .keep-circle::after {
+  content: '✓';
+  color: var(--accent-contrast);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.keep-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}

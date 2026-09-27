@@ -64,6 +64,7 @@
   const editorSubs = document.getElementById('editor-subs');
   const editorCancel = document.getElementById('editor-cancel');
   const editorDone = document.getElementById('editor-done');
+  const editorKeep = document.getElementById('editor-keep');
 
   // ALL LIST 模块
   const listCollection = document.getElementById('list-collection');
@@ -475,7 +476,7 @@
     updateDate();
     planList.innerHTML = '';
 
-    const todayPlans = plans.filter((p) => p.date === todayStr());
+    const todayPlans = plans.filter((p) => p.date === todayStr() || (p.keepUntilDone && !p.done && p.date < todayStr()));
     if (todayPlans.length === 0) {
       emptyEl.hidden = false;
       return;
@@ -680,6 +681,7 @@
     editorTitle.value = '';
     editorDesc.value = '';
     editorSubs.innerHTML = '';
+    editorKeep.checked = false;
     addSubRow(editorSubs, false, null);
     editorOverlay.hidden = false;
     requestAnimationFrame(() => editorTitle.focus());
@@ -690,6 +692,7 @@
     editorTitle.value = plan.title || '';
     editorDesc.value = plan.desc || '';
     editorSubs.innerHTML = '';
+    editorKeep.checked = !!plan.keepUntilDone;
     (plan.subs || []).forEach((s) => addSubRow(editorSubs, false, s));
     addSubRow(editorSubs, false, null);
     editorOverlay.hidden = false;
@@ -782,6 +785,7 @@
         p.title = title;
         p.desc = desc;
         p.subs = subs;
+        p.keepUntilDone = editorKeep.checked;
       }
       editingPlanId = null;
     } else {
@@ -792,6 +796,7 @@
         subs: subs,
         done: false,
         date: currentPlanDate,
+        keepUntilDone: editorKeep.checked,
         createdAt: Date.now(),
       });
     }
@@ -3772,12 +3777,30 @@
   habitEditorSave.addEventListener('click', saveHabit);
   habitEditorOverlay.addEventListener('click', (e) => { if (e.target === habitEditorOverlay) closeHabitEditor(); });
   habitIconUpload.addEventListener('click', () => habitIconFile.click());
+  function resizeImage(file, maxSize, cb) {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * s));
+      const h = Math.max(1, Math.round(img.height * s));
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      cb(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  }
   habitIconFile.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { habitDraftIcon = reader.result; renderHabitIconPreview(); };
-    reader.readAsDataURL(file);
+    resizeImage(file, 200, (dataUrl) => {
+      habitDraftIcon = dataUrl;
+      renderHabitIconPreview();
+    });
     e.target.value = '';
   });
   statsRange.addEventListener('click', (e) => {
